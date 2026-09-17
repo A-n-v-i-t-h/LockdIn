@@ -211,7 +211,7 @@ export async function saveNutrition(
   return rows[0].id;
 }
 
-export const MEASUREMENT_KINDS = ["waist", "arm_r", "arm_l", "chest", "thigh", "hips", "bideltoid", "neck"] as const;
+export const MEASUREMENT_KINDS = ["waist", "arm_r", "arm_l", "chest", "thigh", "hips", "bideltoid", "neck", "forearm_r", "forearm_l", "waist_front"] as const;
 export type MeasurementKind = (typeof MEASUREMENT_KINDS)[number];
 
 export async function saveMeasurement(

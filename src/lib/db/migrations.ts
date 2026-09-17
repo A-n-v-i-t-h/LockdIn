@@ -325,4 +325,15 @@ begin
 end $$;
 `;
 
-export const MIGRATIONS: Migration[] = [{ version: "0001_init", sql: init }];
+// Forearms and the front-waist reading, added 2026-09-17 for his 13 Sep tape.
+const forearmsFrontWaist = `
+alter table measurements drop constraint if exists measurements_kind_check;
+alter table measurements add constraint measurements_kind_check check (kind in (
+  'waist','arm_r','arm_l','chest','thigh','hips','bideltoid','neck','forearm_r','forearm_l','waist_front'
+));
+`;
+
+export const MIGRATIONS: Migration[] = [
+  { version: "0001_init", sql: init },
+  { version: "0002_forearms_front_waist", sql: forearmsFrontWaist },
+];

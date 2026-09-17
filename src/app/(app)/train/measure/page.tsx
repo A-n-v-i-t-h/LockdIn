@@ -21,8 +21,11 @@ const KINDS: { key: string; label: string; how: string }[] = [
   { key: "chest", label: "Chest", how: "Nipple line, arms down, relaxed exhale." },
   { key: "thigh", label: "Thigh", how: "Mid-thigh, same distance above the kneecap every time." },
   { key: "hips", label: "Hips", how: "Widest point." },
-  { key: "bideltoid", label: "Bideltoid", how: "Around both shoulders at the widest point." },
+  { key: "bideltoid", label: "Bideltoid", how: "Across the front, side delt to side delt." },
   { key: "neck", label: "Neck", how: "Below the Adam's apple." },
+  { key: "forearm_r", label: "Forearm R", how: "Widest point, cold, before training." },
+  { key: "forearm_l", label: "Forearm L", how: "Widest point, cold, before training." },
+  { key: "waist_front", label: "Front waist", how: "Across the front of the waist, just above the pockets." },
 ];
 
 export default async function MeasurePage() {
