@@ -1,0 +1,5 @@
+# Keep LF everywhere (the files are written with LF; Vercel builds on Linux).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
