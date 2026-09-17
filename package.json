@@ -1,0 +1,48 @@
+{
+  "name": "lockdin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LockdIn AI: a personal dashboard with a rule-based fitness coach.",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "user:create": "tsx scripts/create-user.ts",
+    "agent:run": "tsx scripts/run-agent.ts",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build && npm run test:e2e",
+    "demo": "tsx scripts/e2e-server.ts --port 3100 --now 2026-10-29T13:15:00.000Z --data .data/demo",
+    "icons": "node scripts/make-icons.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "jose": "6.2.12",
+    "next": "16.3.5",
+    "postgres": "3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}
