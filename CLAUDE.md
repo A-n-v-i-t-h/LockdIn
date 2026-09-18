@@ -79,9 +79,15 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
 - **Rules are versioned** (`rules.ts` + `rules/RULES.md`). Never edit v1's numbers: add v2,
   keep v1 in `RULE_SETS`, switch `CURRENT_RULES`, update RULES.md. Hard bounds throw
   `RuleAssertionError` (P6 one step, A1 no singles before December).
-- No AI model writes anything today (no Anthropic key was given). The note is composed from
-  the rule outputs. A model could later rewrite the note's wording or read meal photos; it
-  must never set a number.
+- The rule note is composed from the rule outputs. **The AI coach** (`src/lib/ai`, his decision
+  2026-09-19, reversing "a model must never set a number") is a daily Claude Code routine on his
+  subscription (no API key). It GETs `/api/ai/context` (brief, today's run, 8 weeks of log, its
+  notebook, proposals) and POSTs `/api/ai/act` (note, notebook, changes), authenticated by
+  `AI_COACH_TOKEN` for `AI_COACH_EMAIL`. Changes go through the normal append-only tables with
+  `author = 'ai'` (overrides, nutrition_targets, day_changes), so they are undoable and replayable.
+  Limits in `brief.ts` (`AI_LIMITS`): beyond them a change becomes an `ai_proposals` row he
+  approves on /coach (his words: "automatic changes but my approval for drastic changes").
+  The instructions live in `AI_BRIEF` and ship with a deploy, not in the routine prompt.
 
 ## UI
 

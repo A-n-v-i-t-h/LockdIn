@@ -21,7 +21,7 @@ export function watchErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
   page.on("console", (m) => {
-    if (m.type() === "error") errors.push(`console: ${m.text()}`);
+    if (m.type() === "error") errors.push(`console: ${m.text()}${m.location().url ? ` (${m.location().url})` : ""}`);
   });
   return errors;
 }

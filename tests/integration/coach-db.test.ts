@@ -27,6 +27,7 @@ import {
   validateSetInput,
 } from "@/lib/fitness/repo";
 import { DEFAULT_GYM } from "@/lib/fitness/equipment";
+import { actAi, aiContext, AiInputError, decideProposal, listAiNotes, listProposals } from "@/lib/ai/coach";
 import { addDays, toInstant } from "@/lib/time";
 
 let db: Db;
@@ -362,5 +363,74 @@ describe("moving and skipping days", () => {
     await expect(
       db.query("insert into day_changes (user_id, kind, date) values ($1, 'move', '2026-10-14'::date)", [id]),
     ).rejects.toThrow();
+  });
+});
+
+describe("AI coach", () => {
+  it("reads the context, applies changes within limits, files the rest, and his approval applies them", async () => {
+    const u = await createUser(db, { email: "coach-ai@example.com", password: "notebook-memory-77", displayName: "A" });
+    // Bench has a working weight (he set it); everything else is still unset.
+    await addOverride(db, u.id, { date: "2026-10-13", target: "track:bench_heavy", field: "weight", value: 50, reason: "Start" }, iso("2026-10-13", "07:00"));
+    const ctx = await aiContext(db, u.id, at("2026-10-14", "08:30"));
+    expect(ctx.today).toBe("2026-10-14");
+    expect(ctx.brief).toContain("You are the AI coach");
+    expect(ctx.states.bench_heavy.weight).toBe(50);
+    expect(ctx.program.thisWeek).toHaveLength(7);
+
+    await expect(actAi(db, u.id, { date: "2026-10-13", kind: "daily", note: "x" }, at("2026-10-14", "08:31"))).rejects.toBeInstanceOf(AiInputError);
+    await expect(actAi(db, u.id, { date: "2026-10-14", kind: "daily" }, at("2026-10-14", "08:31"))).rejects.toThrow(/note/);
+
+    const r = await actAi(
+      db,
+      u.id,
+      {
+        date: "2026-10-14",
+        kind: "daily",
+        note: "Bench goes up a step tonight. Legs moves to Sunday.",
+        notebook: "Bench 50 -> 52.5 on 14 Oct; expect 4x6 by the next exposure.",
+        model: "test",
+        changes: [
+          { type: "load", track: "bench_heavy", weight: 52.5, reason: "Two clean exposures at 50" },
+          { type: "move", date: "2026-10-14", toDate: "2026-10-18", reason: "Holiday" },
+          { type: "targets", kcal: 3000, protein: 130, carbs: 455, fat: 76, reason: "Flat three weeks" },
+          { type: "skip", date: "2026-10-15", reason: "Rest" },
+          { type: "suggest", text: "Aim for bed by 23:00." },
+          { type: "load", track: "not_a_lift", weight: 10, reason: "x" },
+        ],
+      },
+      at("2026-10-14", "08:32"),
+    );
+    expect(r.applied.map((a) => a.type)).toEqual(["load", "move"]);
+    expect(r.proposed.map((p) => p.type)).toEqual(["targets", "skip", "suggest"]);
+    expect(r.rejected.map((x) => x.type)).toEqual(["load"]);
+
+    // The coach re-ran: today is rest (moved), and Sunday's card carries the AI's bench load.
+    const today = (await listRuns(db, u.id, { limit: 5 }))[0];
+    expect(today.output.card.kind).toBe("rest");
+    const change = today.output.changes.filter((c) => c.track === "bench_heavy").at(-1);
+    expect(change?.reason).toBe("AI coach: Two clean exposures at 50");
+    expect((await loadLiftState(db, u.id)).bench_heavy.weight).toBe(52.5);
+    expect((await listAiNotes(db, u.id))[0]).toMatchObject({ kind: "daily", notebook: expect.stringContaining("52.5") });
+
+    // A newer proposal on the same thing replaces the older one.
+    await actAi(db, u.id, { date: "2026-10-14", kind: "daily", note: "Revised.", changes: [{ type: "targets", kcal: 2950, protein: 130, carbs: 443, fat: 76, reason: "Smaller" }] }, at("2026-10-14", "08:40"));
+    const pending = await listProposals(db, u.id, { pending: true });
+    expect(pending.map((p) => p.change.type).sort()).toEqual(["skip", "suggest", "targets"]);
+    const targetsProposal = pending.find((p) => p.change.type === "targets")!;
+    expect(targetsProposal.change).toMatchObject({ kcal: 2950 });
+
+    // He approves the calories and rejects the skip.
+    expect(await decideProposal(db, u.id, targetsProposal.id, true, at("2026-10-14", "09:00"))).toBeNull();
+    expect(await decideProposal(db, u.id, targetsProposal.id, true, at("2026-10-14", "09:01"))).toBe("That proposal is no longer pending.");
+    const skip = pending.find((p) => p.change.type === "skip")!;
+    expect(await decideProposal(db, u.id, skip.id, false, at("2026-10-14", "09:02"))).toBeNull();
+    const targets = await loadTargets(db, u.id);
+    expect(targets.at(-1)).toMatchObject({ kcal: 2950, source: "override", reason: "AI coach: Smaller (you approved)" });
+    const run = await runCoach(db, u.id, { trigger: "view", at: at("2026-10-14", "09:03") });
+    expect(run.run.output.targets.current.kcal).toBe(2950);
+    expect((await aiContext(db, u.id, at("2026-10-14", "09:04"))).proposals.find((p) => p.status === "rejected")).toBeTruthy();
+
+    const replay = await replayHistory(db, u.id);
+    expect(replay.divergences).toEqual([]);
   });
 });

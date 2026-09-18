@@ -37,7 +37,9 @@ import {
 import { CURRENT_RULES } from "@/lib/fitness/rules";
 import { addDays, diffDays, fmtShort, isIsoDate, localDate, now } from "@/lib/time";
 import { sleepInstants } from "@/lib/fitness/checkin";
-import { dayPlan, weekStart } from "@/lib/fitness/schedule";
+import { weekStart } from "@/lib/fitness/schedule";
+import { checkDayChange, hasLoggedSets } from "@/lib/fitness/daychanges";
+import { decideProposal } from "@/lib/ai/coach";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -500,19 +502,6 @@ export async function runReplayAction(): Promise<void> {
 // Moving or skipping a day (holidays, missed days)
 // ---------------------------------------------------------------------------
 
-/** Days that can be changed: the last 30 (to fix a missed day) and the next 14 (a known holiday). */
-function checkChangeDate(date: string, today: string): string | null {
-  if (!isIsoDate(date)) return "Pick a valid date.";
-  if (diffDays(today, date) > 30) return "Only the last 30 days can be changed.";
-  if (diffDays(date, today) > 14) return "Only the next two weeks can be planned.";
-  return null;
-}
-
-async function hasLoggedSets(db: Awaited<ReturnType<typeof getDb>>, userId: string, date: string): Promise<boolean> {
-  const session = await getSession(db, userId, date);
-  return !!session && (await sessionSets(db, userId, session.id)).length > 0;
-}
-
 function weekError(message: string, week: string): never {
   redirect(`/train/week?w=${week}&error=${encodeURIComponent(message)}`);
 }
@@ -524,18 +513,9 @@ export async function moveDayAction(form: FormData): Promise<void> {
   const at = now();
   const today = localDate(at);
   const week = isIsoDate(from) ? weekStart(from) : weekStart(today);
-  const bad = checkChangeDate(from, today) ?? checkChangeDate(to, today);
-  if (bad) weekError(bad, week);
-  if (from === to) weekError("Pick a different day to move it to.", week);
-  if (weekStart(from) !== weekStart(to)) weekError("Sessions move within their own week (Monday to Sunday).", week);
   const db = await getDb();
-  const { schedule } = await loadSettings(db, user.id);
-  const plan = dayPlan(from, schedule);
-  if (plan.kind !== "train") weekError(`${fmtShort(from)} has no session to move.`, week);
-  if (dayPlan(to, schedule).phase === "pre") weekError("That day is before the program starts.", week);
-  for (const d of [from, to]) {
-    if (await hasLoggedSets(db, user.id, d)) weekError(`${fmtShort(d)} already has logged sets, so it stays as it is.`, week);
-  }
+  const bad = await checkDayChange(db, user.id, { kind: "move", date: from, toDate: to }, today);
+  if (bad) weekError(bad, week);
   await addDayChange(db, user.id, { kind: "move", date: from, toDate: to, reason: str(form, "reason") }, at.toISOString());
   await refreshCoach(db, user.id, "settings", at);
   refreshAll();
@@ -548,12 +528,9 @@ export async function skipDayAction(form: FormData): Promise<void> {
   const at = now();
   const today = localDate(at);
   const week = isIsoDate(date) ? weekStart(date) : weekStart(today);
-  const bad = checkChangeDate(date, today);
-  if (bad) weekError(bad, week);
   const db = await getDb();
-  const { schedule } = await loadSettings(db, user.id);
-  if (dayPlan(date, schedule).kind !== "train") weekError(`${fmtShort(date)} has no session to skip.`, week);
-  if (await hasLoggedSets(db, user.id, date)) weekError(`${fmtShort(date)} already has logged sets, so it stays as it is.`, week);
+  const bad = await checkDayChange(db, user.id, { kind: "skip", date }, today);
+  if (bad) weekError(bad, week);
   await addDayChange(db, user.id, { kind: "skip", date, reason: str(form, "reason") }, at.toISOString());
   await refreshCoach(db, user.id, "settings", at);
   refreshAll();
@@ -578,4 +555,20 @@ export async function undoDayChangeAction(form: FormData): Promise<void> {
   await refreshCoach(db, user.id, "settings", at);
   refreshAll();
   redirect(`/train/week?w=${back}&saved=undone`);
+}
+
+// ---------------------------------------------------------------------------
+// AI coach proposals
+// ---------------------------------------------------------------------------
+
+export async function decideProposalAction(form: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = str(form, "id");
+  const approve = str(form, "decision") === "approve";
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/coach#ai");
+  const db = await getDb();
+  const error = await decideProposal(db, user.id, id, approve, now());
+  refreshAll();
+  if (error) redirect(`/coach?error=${encodeURIComponent(error)}#ai`);
+  redirect(`/coach?ai=${approve ? "approved" : "rejected"}#ai`);
 }

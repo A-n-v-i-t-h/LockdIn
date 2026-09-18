@@ -9,7 +9,9 @@ import { listReviews, listRuns, loadLiftState, loadOverrides, loadTargets } from
 import { EXERCISES, schemeForTrack, parseSubstituteTrack } from "@/lib/fitness/program";
 import { targetOn } from "@/lib/fitness/nutrition";
 import { fmtKg } from "@/lib/fitness/equipment";
-import { runCoachAction, runReplayAction, revokeOverrideAction } from "@/app/actions/fitness";
+import { decideProposalAction, runCoachAction, runReplayAction, revokeOverrideAction } from "@/app/actions/fitness";
+import { describeChange, listAiNotes, listProposals } from "@/lib/ai/coach";
+import { AiNote } from "@/components/AiNote";
 import { fmtShort, localDate, localTime, now } from "@/lib/time";
 import { fmtInt, plural } from "@/lib/format";
 import { Header } from "@/components/Header";
@@ -32,7 +34,8 @@ function trackName(track: string): string {
   return slot.label ?? EXERCISES[slot.exercise]?.name ?? track;
 }
 
-export default async function CoachPage() {
+export default async function CoachPage({ searchParams }: { searchParams: Promise<{ ai?: string; error?: string }> }) {
+  const sp = await searchParams;
   const user = await requireUser();
   const db = await getDb();
   const at = now();
@@ -47,6 +50,9 @@ export default async function CoachPage() {
     listReviews<MonthlyAudit>(db, user.id, "monthly", 6),
     listReviews<ReplayResult>(db, user.id, "replay", 6),
   ]);
+  const [aiNotes, proposals] = await Promise.all([listAiNotes(db, user.id, 10), listProposals(db, user.id, { limit: 30 })]);
+  const pending = proposals.filter((p) => p.status === "pending");
+  const decided = proposals.filter((p) => p.status !== "pending").slice(0, 8);
 
   const seen = new Set<string>();
   const changes: (AnnouncedChange & { runDate: string })[] = [];
@@ -90,6 +96,94 @@ export default async function CoachPage() {
       <p className="sm t3">
         Today&apos;s run: revision {run.revision}, {run.trigger} at {localTime(new Date(run.asOf))}. Cron fallback runs at 10:00–11:00 every day.
       </p>
+
+      <div className="sec" id="ai">
+        AI coach <span>runs 08:30 · Mondays weekly</span>
+      </div>
+      {sp.ai === "approved" ? (
+        <p className="form-ok" role="status">
+          Approved. The change is applied and listed below.
+        </p>
+      ) : sp.ai === "rejected" ? (
+        <p className="form-ok" role="status">
+          Rejected. The AI coach sees your decision on its next run.
+        </p>
+      ) : null}
+      {sp.error ? (
+        <p className="form-error" role="alert">
+          {sp.error.slice(0, 200)}
+        </p>
+      ) : null}
+      {aiNotes[0] ? (
+        <AiNote note={aiNotes[0]} runAsOf={run.asOf} pending={0} link={false} />
+      ) : (
+        <p className="sm t3">No AI coach runs yet. It changes loads, reps, calories and days within limits; bigger changes wait here for you.</p>
+      )}
+      <section className="card flush" aria-label="Waiting for you">
+        <div className="lbl" style={{ padding: "10px 0 4px" }}>
+          Waiting for you · {pending.length}
+        </div>
+        {pending.length ? (
+          pending.map((p) => (
+            <div key={p.id} className="log">
+              <span className="when">{fmtShort(p.date)}</span>
+              <div className="stack tight">
+                <div className="what">{describeChange(p.change)}</div>
+                {p.change.type !== "suggest" ? <div className="because">{p.reason}</div> : null}
+                <div className="sm t3">Needs you: {p.whyReview}</div>
+                <div className="row" style={{ justifyContent: "flex-start" }}>
+                  <form action={decideProposalAction}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="decision" value="approve" />
+                    <button type="submit" className="btn small inline" aria-label={`Approve: ${describeChange(p.change)}`}>
+                      {p.change.type === "suggest" ? "Noted" : "Approve"}
+                    </button>
+                  </form>
+                  <form action={decideProposalAction}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="decision" value="reject" />
+                    <button type="submit" className="btn ghost small inline" aria-label={`Reject: ${describeChange(p.change)}`}>
+                      {p.change.type === "suggest" ? "Dismiss" : "Reject"}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="sm t3" style={{ padding: "6px 0 10px" }}>
+            Nothing to approve.
+          </p>
+        )}
+      </section>
+      {aiNotes.length ? (
+        <details className="more">
+          <summary>AI coach notebook and past notes</summary>
+          <p className="sm t3">Its memory between runs. It reads this first every morning.</p>
+          {aiNotes[0].notebook ? <p className="sm" style={{ whiteSpace: "pre-line" }}>{aiNotes[0].notebook}</p> : null}
+          <div className="card flush">
+            {aiNotes.map((n) => (
+              <div key={n.id} className="log">
+                <span className="when">
+                  {fmtShort(n.date)}
+                  {n.kind === "weekly" ? " · wk" : ""}
+                </span>
+                <div className="because">{n.note}</div>
+              </div>
+            ))}
+          </div>
+          {decided.length ? (
+            <div className="card flush">
+              {decided.map((p) => (
+                <div key={p.id} className="log">
+                  <span className="when">{p.status}</span>
+                  <div className="because">{describeChange(p.change)}</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </details>
+      ) : null}
 
       <div className="sec">
         What changed <span>{changes.length}</span>

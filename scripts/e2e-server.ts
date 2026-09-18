@@ -49,6 +49,8 @@ async function main() {
       LOCKDIN_FAKE_NOW: nowIso,
       SESSION_SECRET: "e2e-session-secret-e2e-session-secret-0123",
       CRON_SECRET: "e2e-cron-secret-0123456789",
+      AI_COACH_TOKEN: "e2e-ai-coach-token-0123456789abcdef",
+      AI_COACH_EMAIL: DEMO_USER.email,
     },
   });
   const stop = () => child.kill();

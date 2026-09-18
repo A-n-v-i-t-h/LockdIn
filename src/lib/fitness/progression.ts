@@ -38,6 +38,8 @@ export interface OverrideEvent {
   field: "weight" | "reps" | "targets";
   value: unknown;
   reason: string;
+  /** "ai" when the AI coach made it. Wording only; the numbers apply the same way. */
+  author?: "user" | "ai";
 }
 
 export interface TrackState {
@@ -576,7 +578,7 @@ export function computeProgression(input: ProgressionInput): ProgressionResult {
       to: { weight: st.weight, reps: st.repTargets },
       rule: "O1",
       cited: [ov.id],
-      reason: ov.reason ? `You set it: ${ov.reason}` : "You set it by hand.",
+      reason: ov.author === "ai" ? `AI coach: ${ov.reason || "adjusted by the AI coach."}` : ov.reason ? `You set it: ${ov.reason}` : "You set it by hand.",
     });
   }
 }

@@ -350,8 +350,44 @@ create table if not exists day_changes (
 create index if not exists day_changes_asof on day_changes (user_id, date, recorded_at);
 `;
 
+// The AI coach, added 2026-09-19. It acts through the same append-only change tables
+// as he does (marked author = 'ai'), keeps a notebook as its memory between runs, and
+// files changes beyond its limits as proposals he approves or rejects.
+const aiCoach = `
+alter table overrides add column if not exists author text not null default 'user' check (author in ('user','ai'));
+alter table nutrition_targets add column if not exists author text not null default 'user' check (author in ('user','ai'));
+alter table day_changes add column if not exists author text not null default 'user' check (author in ('user','ai'));
+
+create table if not exists ai_notes (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references app_users(id) on delete cascade,
+  date        date not null,
+  kind        text not null check (kind in ('daily','weekly')),
+  note        text not null check (length(note) <= 2000),
+  notebook    text not null default '' check (length(notebook) <= 6000),
+  model       text not null default '',
+  ${versioned}
+);
+create index if not exists ai_notes_user_date on ai_notes (user_id, date desc, recorded_at desc);
+
+create table if not exists ai_proposals (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references app_users(id) on delete cascade,
+  date        date not null,
+  change      jsonb not null,
+  reason      text not null default '',
+  why_review  text not null default '',
+  status      text not null default 'pending' check (status in ('pending','approved','rejected','replaced')),
+  decided_at  timestamptz,
+  applied_ref text,
+  recorded_at timestamptz not null default now()
+);
+create index if not exists ai_proposals_user on ai_proposals (user_id, status, recorded_at desc);
+`;
+
 export const MIGRATIONS: Migration[] = [
   { version: "0001_init", sql: init },
   { version: "0002_forearms_front_waist", sql: forearmsFrontWaist },
   { version: "0003_day_changes", sql: dayChanges },
+  { version: "0004_ai_coach", sql: aiCoach },
 ];

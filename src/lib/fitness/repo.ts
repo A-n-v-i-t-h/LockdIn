@@ -15,6 +15,9 @@ const asOfClause = (alias = "") =>
 
 const FAR_FUTURE = "9999-12-31T00:00:00.000Z";
 
+/** Who made a change: him, or the AI coach. */
+export type Author = "user" | "ai";
+
 // ---------------------------------------------------------------------------
 // Readers
 // ---------------------------------------------------------------------------
@@ -102,9 +105,9 @@ export async function loadSets(q: Queryable, userId: string, asOf = FAR_FUTURE):
 
 export async function loadOverrides(q: Queryable, userId: string, asOf = FAR_FUTURE): Promise<OverrideEvent[]> {
   const rows = await q.query<{
-    id: string; date: string; target: string; field: "weight" | "reps" | "targets"; value: unknown; reason: string; recorded_at: string;
+    id: string; date: string; target: string; field: "weight" | "reps" | "targets"; value: unknown; reason: string; recorded_at: string; author: Author;
   }>(
-    `select id, date, target, field, value, reason, recorded_at
+    `select id, date, target, field, value, reason, recorded_at, author
      from overrides where user_id = $1 and ${asOfClause()} order by recorded_at`,
     [userId, asOf],
   );
@@ -116,6 +119,7 @@ export async function loadOverrides(q: Queryable, userId: string, asOf = FAR_FUT
     value: r.value,
     reason: r.reason,
     recordedAt: r.recorded_at,
+    author: r.author,
   }));
 }
 
@@ -164,31 +168,31 @@ export async function loadSettings(q: Queryable, userId: string, asOf = FAR_FUTU
   };
 }
 
-export async function loadDayChanges(q: Queryable, userId: string, asOf = FAR_FUTURE): Promise<(DayChange & { reason: string })[]> {
-  const rows = await q.query<{ id: string; kind: "move" | "skip"; date: string; to_date: string | null; reason: string; recorded_at: string }>(
-    `select id, kind, date, to_date, reason, recorded_at from day_changes
+export async function loadDayChanges(q: Queryable, userId: string, asOf = FAR_FUTURE): Promise<(DayChange & { reason: string; author: Author })[]> {
+  const rows = await q.query<{ id: string; kind: "move" | "skip"; date: string; to_date: string | null; reason: string; recorded_at: string; author: Author }>(
+    `select id, kind, date, to_date, reason, recorded_at, author from day_changes
      where user_id = $1 and ${asOfClause()} order by recorded_at, id`,
     [userId, asOf],
   );
   return rows.map((r) =>
     r.kind === "move"
-      ? { id: r.id, kind: "move", date: r.date, toDate: r.to_date!, reason: r.reason, recordedAt: r.recorded_at }
-      : { id: r.id, kind: "skip", date: r.date, reason: r.reason, recordedAt: r.recorded_at },
+      ? { id: r.id, kind: "move", date: r.date, toDate: r.to_date!, reason: r.reason, recordedAt: r.recorded_at, author: r.author }
+      : { id: r.id, kind: "skip", date: r.date, reason: r.reason, recordedAt: r.recorded_at, author: r.author },
   );
 }
 
 export async function addDayChange(
   q: Queryable,
   userId: string,
-  input: { kind: "move" | "skip"; date: string; toDate?: string | null; reason?: string },
+  input: { kind: "move" | "skip"; date: string; toDate?: string | null; reason?: string; author?: Author },
   at: string,
 ): Promise<string> {
   assertDate(input.date);
   if (input.kind === "move") assertDate(input.toDate ?? "");
   const rows = await q.query<{ id: string }>(
-    `insert into day_changes (user_id, kind, date, to_date, reason, recorded_at)
-     values ($1, $2, $3::date, $4::date, $5, $6::timestamptz) returning id`,
-    [userId, input.kind, input.date, input.kind === "move" ? input.toDate : null, (input.reason ?? "").slice(0, 200), at],
+    `insert into day_changes (user_id, kind, date, to_date, reason, recorded_at, author)
+     values ($1, $2, $3::date, $4::date, $5, $6::timestamptz, $7) returning id`,
+    [userId, input.kind, input.date, input.kind === "move" ? input.toDate : null, (input.reason ?? "").slice(0, 200), at, input.author ?? "user"],
   );
   return rows[0].id;
 }
@@ -423,14 +427,14 @@ export async function sessionSets(q: Queryable, userId: string, sessionId: strin
 export async function addOverride(
   q: Queryable,
   userId: string,
-  input: { date: string; target: string; field: "weight" | "reps" | "targets"; value: unknown; reason: string; changeRef?: string | null },
+  input: { date: string; target: string; field: "weight" | "reps" | "targets"; value: unknown; reason: string; changeRef?: string | null; author?: Author },
   at: string,
 ): Promise<string> {
   assertDate(input.date);
   const rows = await q.query<{ id: string }>(
-    `insert into overrides (user_id, date, target, field, value, reason, change_ref, recorded_at)
-     values ($1, $2::date, $3, $4, $5::jsonb, $6, $7, $8::timestamptz) returning id`,
-    [userId, input.date, input.target, input.field, JSON.stringify(input.value), input.reason.slice(0, 300), input.changeRef ?? null, at],
+    `insert into overrides (user_id, date, target, field, value, reason, change_ref, recorded_at, author)
+     values ($1, $2::date, $3, $4, $5::jsonb, $6, $7, $8::timestamptz, $9) returning id`,
+    [userId, input.date, input.target, input.field, JSON.stringify(input.value), input.reason.slice(0, 300), input.changeRef ?? null, at, input.author ?? "user"],
   );
   return rows[0].id;
 }
@@ -445,14 +449,14 @@ export async function revokeOverride(q: Queryable, userId: string, id: string, a
 export async function insertTargets(
   q: Queryable,
   userId: string,
-  input: { effectiveDate: string; kcal: number; protein: number; carbs: number; fat: number; source: Targets["source"]; reason: string; runId?: string | null },
+  input: { effectiveDate: string; kcal: number; protein: number; carbs: number; fat: number; source: Targets["source"]; reason: string; runId?: string | null; author?: Author },
   at: string,
 ): Promise<string> {
   assertDate(input.effectiveDate);
   const rows = await q.query<{ id: string }>(
-    `insert into nutrition_targets (user_id, effective_date, kcal, protein_g, carbs_g, fat_g, source, reason, run_id, recorded_at)
-     values ($1, $2::date, $3::int, $4::numeric, $5::numeric, $6::numeric, $7, $8, $9::uuid, $10::timestamptz) returning id`,
-    [userId, input.effectiveDate, Math.round(input.kcal), input.protein, input.carbs, input.fat, input.source, input.reason.slice(0, 500), input.runId ?? null, at],
+    `insert into nutrition_targets (user_id, effective_date, kcal, protein_g, carbs_g, fat_g, source, reason, run_id, recorded_at, author)
+     values ($1, $2::date, $3::int, $4::numeric, $5::numeric, $6::numeric, $7, $8, $9::uuid, $10::timestamptz, $11) returning id`,
+    [userId, input.effectiveDate, Math.round(input.kcal), input.protein, input.carbs, input.fat, input.source, input.reason.slice(0, 500), input.runId ?? null, at, input.author ?? "user"],
   );
   return rows[0].id;
 }

@@ -20,6 +20,7 @@ import { CURRENT_RULES } from "@/lib/fitness/rules";
 import { loggingStreak } from "@/lib/fitness/streak";
 import { targetOn } from "@/lib/fitness/nutrition";
 import { addDays, dayPart, localDate, logicalDate, now } from "@/lib/time";
+import { listAiNotes, listProposals } from "@/lib/ai/coach";
 
 export async function fitnessBasics(userId: string, at: Date = now()) {
   const db = await getDb();
@@ -49,8 +50,11 @@ export async function homeView(userId: string) {
   const nightDate = logicalDate(at);
   const session = await getSession(base.db, userId, base.today);
   const logged = session ? await sessionSets(base.db, userId, session.id) : [];
+  const [notes, pending] = await Promise.all([listAiNotes(base.db, userId, 1), listProposals(base.db, userId, { pending: true })]);
   return {
     ...base,
+    aiNote: notes[0]?.date === base.today ? notes[0] : null,
+    aiPending: pending.length,
     at,
     part: dayPart(at),
     run,

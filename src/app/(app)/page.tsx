@@ -13,6 +13,7 @@ import { Icon } from "@/components/Icon";
 import { Plates } from "@/components/Plates";
 import { TaskRow } from "@/components/TaskRow";
 import { WorkOrder } from "@/components/WorkOrder";
+import { AiNote } from "@/components/AiNote";
 
 export const dynamic = "force-dynamic";
 
@@ -190,7 +191,12 @@ export default async function Home() {
     </Link>
   ) : null;
 
-  const note = <WorkOrder note={out.note} asOf={run.asOf} compact revision={run.revision} />;
+  const note = (
+    <>
+      {v.aiNote ? <AiNote note={v.aiNote} runAsOf={run.asOf} pending={v.aiPending} /> : null}
+      <WorkOrder note={out.note} asOf={run.asOf} compact revision={run.revision} />
+    </>
+  );
 
   const taskList = (
     <>
