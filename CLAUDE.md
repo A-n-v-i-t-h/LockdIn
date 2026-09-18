@@ -103,11 +103,17 @@ errors keep input). Keep pages passing axe WCAG 2.1 AA and 320 px widths (the e2
 - Writes in tests must use realistic timestamps: rows recorded before an existing run's
   as-of time are (correctly) reported as drift by the replay.
 
-## State (2026-09-17)
+## State (2026-09-19)
 
-- Built and tested locally. **Not deployed** and **not yet connected** to Supabase or Vercel:
-  he will give the Supabase and Vercel tokens after reviewing this build. Deployment steps:
-  `docs/DEPLOY.md`. GitHub: private repo `A-n-v-i-t-h/LockdIn`.
+- **Live since 2026-09-19: https://lockdin-pink.vercel.app** (Vercel project `lockdin`, deploys
+  on every push to `main` of the private repo `A-n-v-i-t-h/LockdIn`). Database: Supabase project
+  `lockdin` (`wvkyvlmaihxboklcsmvz`, ap-south-1). Secrets, all gitignored: API tokens in
+  `.env.access.local`; DB password and pooler URL in `.env.supabase.local`; production
+  `SESSION_SECRET`/`CRON_SECRET` in `.env.vercel.local`; his online login in
+  `owner.credentials.online.local.txt` (seeded from `LOG.md` like the local one).
+- PGlite and postgres.js differ in parameter serialisation, and the tests only run PGlite.
+  The first deploy stored every jsonb value as a JSON string (fixed in `drivers.ts`). After
+  touching the driver or adding a new column type, check the live database, not just the tests.
 - His local account exists (`owner.credentials.local.txt`, gitignored), seeded from `LOG.md`:
   the 7 Sep weigh-in (57.7 kg), the two single-value month-0 tape readings, Phase 1 targets,
   and the plan's two goals. The ranged month-0 values stay in `LOG.md` until the assisted re-measure.
