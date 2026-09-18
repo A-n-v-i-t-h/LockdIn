@@ -105,12 +105,12 @@ errors keep input). Keep pages passing axe WCAG 2.1 AA and 320 px widths (the e2
 
 ## State (2026-09-19)
 
-- **Live since 2026-09-19: https://lockdin-pink.vercel.app** (Vercel project `lockdin`, deploys
+- **Live since 2026-09-19: https://lockinai.vercel.app** (lockdin-pink.vercel.app 308-redirects there) (Vercel project `lockdin`, deploys
   on every push to `main` of the private repo `A-n-v-i-t-h/LockdIn`). Database: Supabase project
   `lockdin` (`wvkyvlmaihxboklcsmvz`, ap-south-1). Secrets, all gitignored: API tokens in
   `.env.access.local`; DB password and pooler URL in `.env.supabase.local`; production
   `SESSION_SECRET`/`CRON_SECRET` in `.env.vercel.local`; his online login in
-  `owner.credentials.online.local.txt` (seeded from `LOG.md` like the local one).
+  `owner.credentials.online.local.txt`. Online data = the LOG.md seed plus everything he had entered locally (weigh-ins 7–17 Sep, the 13 Sep tape set), copied 2026-09-19. The local PGlite account is no longer the record.
 - PGlite and postgres.js differ in parameter serialisation, and the tests only run PGlite.
   The first deploy stored every jsonb value as a JSON string (fixed in `drivers.ts`). After
   touching the driver or adding a new column type, check the live database, not just the tests.
