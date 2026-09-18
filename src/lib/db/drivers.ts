@@ -2,7 +2,7 @@
 // shapes: dates as "YYYY-MM-DD", timestamps as ISO strings, numerics as numbers.
 import type { Db, Queryable, Row } from "./types";
 
-const OID = { INT8: 20, NUMERIC: 1700, DATE: 1082, TIMESTAMPTZ: 1184, TIMESTAMP: 1114 } as const;
+const OID = { INT8: 20, NUMERIC: 1700, DATE: 1082, TIMESTAMPTZ: 1184, TIMESTAMP: 1114, JSON: 114, JSONB: 3802 } as const;
 
 const identity = (x: string) => x;
 
@@ -94,6 +94,14 @@ export async function openPostgres(url: string): Promise<Db> {
       },
       numeric: { to: OID.NUMERIC, from: [OID.NUMERIC], serialize: (x: unknown) => String(x), parse: Number },
       int8: { to: OID.INT8, from: [OID.INT8], serialize: (x: unknown) => String(x), parse: Number },
+      // Callers pass JSON text to `$n::jsonb` (as PGlite expects). postgres.js would
+      // JSON.stringify it again and store a JSON string instead of the object.
+      json: {
+        to: OID.JSONB,
+        from: [OID.JSON, OID.JSONB],
+        serialize: (x: unknown) => (typeof x === "string" ? x : JSON.stringify(x)),
+        parse: (x: string) => JSON.parse(x),
+      },
     },
   });
 
