@@ -74,6 +74,11 @@ export default async function TrainPage() {
         </p>
       ))}
       {card.optionalDay ? <p className="sm t3">Trainer block: train today only if it&apos;s one of your 3–4 days.</p> : null}
+      {!logged.length ? (
+        <Link href="/train/week" className="sm t2">
+          Holiday or can&apos;t train today? Move or skip a session →
+        </Link>
+      ) : null}
 
       {finished && session ? (
         <SessionSummary userId={user.id} date={v.today} sessionId={session.id} note={session.note} logged={logged} />

@@ -115,3 +115,71 @@ describe("Training01 data", () => {
     expect(restSeconds("—")).toBe(0);
   });
 });
+
+describe("moving and skipping a day", () => {
+  const key = (d: string, s: Parameters<typeof dayPlan>[1]) => {
+    const p = dayPlan(d, s);
+    return p.kind === "train" ? p.session.key : p.reason;
+  };
+  const at = (n: number) => `2026-10-0${n}T01:00:00.000Z`;
+  // Week 6: Mon 12 Oct – Sun 18 Oct, six days.
+
+  it("moves a session onto Sunday and leaves its day as rest", () => {
+    const s = { buildRestDay: 5, changes: [{ id: "a", kind: "move" as const, date: "2026-10-14", toDate: "2026-10-18", recordedAt: at(1) }] };
+    expect(key("2026-10-14", s)).toBe("moved");
+    expect(key("2026-10-18", s)).toBe("legs_q");
+    const sun = dayPlan("2026-10-18", s);
+    if (sun.kind === "train") expect(sun.movedFrom).toBe("2026-10-14");
+    const wed = dayPlan("2026-10-14", s);
+    if (wed.kind === "rest") expect(wed.movedTo).toBe("2026-10-18");
+    // Other days and other weeks are untouched.
+    expect(key("2026-10-15", s)).toBe("push_b");
+    expect(key("2026-10-21", s)).toBe("legs_q");
+  });
+
+  it("swaps two sessions when the target day has one", () => {
+    const s = { buildRestDay: 5, changes: [{ id: "a", kind: "move" as const, date: "2026-10-12", toDate: "2026-10-13", recordedAt: at(1) }] };
+    expect(key("2026-10-12", s)).toBe("pull_a");
+    expect(key("2026-10-13", s)).toBe("push_a");
+  });
+
+  it("skips a session: rest, and its lifts are next due in the following week", () => {
+    const s = { buildRestDay: 5, changes: [{ id: "a", kind: "skip" as const, date: "2026-10-12", recordedAt: at(1) }] };
+    expect(key("2026-10-12", s)).toBe("skipped");
+    const benchTrack = SESSIONS.find((x) => x.key === "push_a")!.slots[0].track;
+    expect(nextDateForTrack(benchTrack, "2026-10-11", s)).not.toBe("2026-10-12");
+  });
+
+  it("applies changes in the order they were made, and a moved-back session is home again", () => {
+    const s = {
+      buildRestDay: 5,
+      changes: [
+        { id: "b", kind: "move" as const, date: "2026-10-18", toDate: "2026-10-14", recordedAt: at(2) },
+        { id: "a", kind: "move" as const, date: "2026-10-14", toDate: "2026-10-18", recordedAt: at(1) },
+      ],
+    };
+    const wed = dayPlan("2026-10-14", s);
+    expect(wed.kind).toBe("train");
+    if (wed.kind === "train") expect(wed.movedFrom).toBeUndefined();
+    expect(key("2026-10-18", s)).toBe("sunday");
+  });
+
+  it("moves into the five-day weeks' rest day, and ignores a change whose day has no session", () => {
+    const s = {
+      buildRestDay: 5,
+      changes: [
+        { id: "a", kind: "move" as const, date: "2026-09-22", toDate: "2026-09-25", recordedAt: at(1) },
+        { id: "b", kind: "skip" as const, date: "2026-09-27", recordedAt: at(2) }, // Sunday: nothing to skip
+      ],
+    };
+    expect(key("2026-09-25", s)).toBe("pull_a");
+    expect(key("2026-09-22", s)).toBe("moved");
+    expect(key("2026-09-27", s)).toBe("sunday");
+  });
+
+  it("keeps ramp-in days optional wherever they land", () => {
+    const s = { buildRestDay: 5, changes: [{ id: "a", kind: "move" as const, date: "2026-09-17", toDate: "2026-09-20", recordedAt: at(1) }] };
+    const sun = dayPlan("2026-09-20", s);
+    expect(sun.kind === "train" && sun.optionalDay).toBe(true);
+  });
+});

@@ -8,7 +8,7 @@ import type { MorningOutput } from "./engine";
 import { EXERCISES, isKnownExercise, schemeForTrack } from "./program";
 import type { LoggedSet, OverrideEvent, TrackState } from "./progression";
 import type { Measurement, NutritionDay, Targets, WeighIn } from "./nutrition";
-import { DEFAULT_SCHEDULE, type ScheduleSettings } from "./schedule";
+import { DEFAULT_SCHEDULE, type DayChange, type ScheduleSettings } from "./schedule";
 
 const asOfClause = (alias = "") =>
   `${alias}recorded_at <= $2::timestamptz and (${alias}superseded_at is null or ${alias}superseded_at > $2::timestamptz)`;
@@ -154,12 +154,52 @@ export async function loadSettings(q: Queryable, userId: string, asOf = FAR_FUTU
   const map = new Map(rows.map((r) => [r.key, r.value]));
   const sched = map.get("schedule") as Partial<ScheduleSettings> | undefined;
   const restDay = Number(sched?.buildRestDay);
+  const changes = await loadDayChanges(q, userId, asOf);
   return {
     gym: map.has("gym") ? sanitiseGym(map.get("gym") as Partial<GymSettings>) : DEFAULT_GYM,
     schedule: {
       buildRestDay: Number.isInteger(restDay) && restDay >= 1 && restDay <= 6 ? restDay : DEFAULT_SCHEDULE.buildRestDay,
+      ...(changes.length ? { changes } : {}),
     },
   };
+}
+
+export async function loadDayChanges(q: Queryable, userId: string, asOf = FAR_FUTURE): Promise<(DayChange & { reason: string })[]> {
+  const rows = await q.query<{ id: string; kind: "move" | "skip"; date: string; to_date: string | null; reason: string; recorded_at: string }>(
+    `select id, kind, date, to_date, reason, recorded_at from day_changes
+     where user_id = $1 and ${asOfClause()} order by recorded_at, id`,
+    [userId, asOf],
+  );
+  return rows.map((r) =>
+    r.kind === "move"
+      ? { id: r.id, kind: "move", date: r.date, toDate: r.to_date!, reason: r.reason, recordedAt: r.recorded_at }
+      : { id: r.id, kind: "skip", date: r.date, reason: r.reason, recordedAt: r.recorded_at },
+  );
+}
+
+export async function addDayChange(
+  q: Queryable,
+  userId: string,
+  input: { kind: "move" | "skip"; date: string; toDate?: string | null; reason?: string },
+  at: string,
+): Promise<string> {
+  assertDate(input.date);
+  if (input.kind === "move") assertDate(input.toDate ?? "");
+  const rows = await q.query<{ id: string }>(
+    `insert into day_changes (user_id, kind, date, to_date, reason, recorded_at)
+     values ($1, $2, $3::date, $4::date, $5, $6::timestamptz) returning id`,
+    [userId, input.kind, input.date, input.kind === "move" ? input.toDate : null, (input.reason ?? "").slice(0, 200), at],
+  );
+  return rows[0].id;
+}
+
+/** Undo: the change stays in history, stamped with when it stopped applying. */
+export async function revokeDayChange(q: Queryable, userId: string, id: string, at: string): Promise<boolean> {
+  const rows = await q.query<{ id: string }>(
+    `update day_changes set superseded_at = $3::timestamptz where user_id = $1 and id = $2::uuid and superseded_at is null returning id`,
+    [userId, id, at],
+  );
+  return rows.length > 0;
 }
 
 // ---------------------------------------------------------------------------

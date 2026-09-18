@@ -333,7 +333,25 @@ alter table measurements add constraint measurements_kind_check check (kind in (
 ));
 `;
 
+// Moving or skipping a day's session (holidays, missed days), added 2026-09-19.
+// Append-only like the rest of fitness: undo stamps superseded_at.
+const dayChanges = `
+create table if not exists day_changes (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references app_users(id) on delete cascade,
+  kind        text not null check (kind in ('move','skip')),
+  date        date not null,
+  to_date     date,
+  reason      text not null default '',
+  ${versioned},
+  check ((kind = 'move') = (to_date is not null)),
+  check (to_date is null or to_date <> date)
+);
+create index if not exists day_changes_asof on day_changes (user_id, date, recorded_at);
+`;
+
 export const MIGRATIONS: Migration[] = [
   { version: "0001_init", sql: init },
   { version: "0002_forearms_front_waist", sql: forearmsFrontWaist },
+  { version: "0003_day_changes", sql: dayChanges },
 ];

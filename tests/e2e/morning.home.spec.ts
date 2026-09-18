@@ -87,6 +87,7 @@ test.describe("morning, Thursday 29 October (week 8)", () => {
       "/checkin",
       "/tonight",
       "/train",
+      "/train/week",
       "/train/progress",
       "/train/history",
       "/train/history/2026-10-27",
@@ -111,7 +112,7 @@ test.describe("morning, Thursday 29 October (week 8)", () => {
 
   test("small phones (320 px) don't scroll sideways", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
-    for (const p of ["/", "/train", "/train/progress", "/train/history", "/coach", "/plan", "/calendar", "/journal", "/settings", "/checkin", "/tonight"]) {
+    for (const p of ["/", "/train", "/train/week", "/train/progress", "/train/history", "/coach", "/plan", "/calendar", "/journal", "/settings", "/checkin", "/tonight"]) {
       await page.goto(p);
       await expectNoHorizontalScroll(page);
     }

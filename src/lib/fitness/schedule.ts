@@ -42,18 +42,79 @@ export const PHASE_LABEL: Record<Phase, string> = {
   full: "Full program",
 };
 
+/**
+ * A holiday or a missed day. `move` puts the session planned on `date` onto `toDate`
+ * (same Monday–Sunday week); if `toDate` already has a session the two swap.
+ * `skip` makes `date` a rest day and its lifts repeat unchanged next time.
+ */
+export type DayChange =
+  | { id: string; kind: "move"; date: string; toDate: string; recordedAt: string }
+  | { id: string; kind: "skip"; date: string; recordedAt: string };
+
 export interface ScheduleSettings {
   /** Weekday (1–6) left out in weeks 3–4, when the plan runs 5 days. */
   buildRestDay: number;
+  /** Absent when there are none, so the inputs digest of older runs stays the same. */
+  changes?: DayChange[];
 }
 
 export const DEFAULT_SCHEDULE: ScheduleSettings = { buildRestDay: 5 };
 
+export type RestReason = "sunday" | "build-rest" | "pre" | "moved" | "skipped";
+
 export type DayPlan =
-  | { kind: "rest"; date: string; week: number; phase: Phase; reason: "sunday" | "build-rest" | "pre" }
-  | { kind: "train"; date: string; week: number; phase: Phase; session: SessionDef; optionalDay: boolean };
+  | { kind: "rest"; date: string; week: number; phase: Phase; reason: RestReason; movedTo?: string }
+  | { kind: "train"; date: string; week: number; phase: Phase; session: SessionDef; optionalDay: boolean; movedFrom?: string };
+
+/** Monday of the week holding `date`. */
+export function weekStart(date: string): string {
+  return addDays(date, 1 - weekday(date));
+}
 
 export function dayPlan(date: string, settings: ScheduleSettings = DEFAULT_SCHEDULE): DayPlan {
+  const changes = settings.changes?.filter((c) => weekStart(c.date) === weekStart(date));
+  if (!changes?.length) return basePlan(date, settings);
+  return weekPlans(date, settings, changes).find((p) => p.date === date)!;
+}
+
+/** The seven days (Monday first) of the week holding `date`, with its moves and skips applied. */
+export function weekPlan(date: string, settings: ScheduleSettings = DEFAULT_SCHEDULE): DayPlan[] {
+  const monday = weekStart(date);
+  const changes = (settings.changes ?? []).filter((c) => weekStart(c.date) === monday);
+  return weekPlans(date, settings, changes);
+}
+
+function weekPlans(date: string, settings: ScheduleSettings, changes: DayChange[]): DayPlan[] {
+  const monday = weekStart(date);
+  const bases = Array.from({ length: 7 }, (_, i) => basePlan(addDays(monday, i), settings));
+  const days = [...bases];
+  const at = (d: string) => diffDays(d, monday);
+  const ordered = [...changes].sort((a, b) => (a.recordedAt < b.recordedAt ? -1 : a.recordedAt > b.recordedAt ? 1 : a.id < b.id ? -1 : 1));
+  for (const c of ordered) {
+    const from = days[at(c.date)];
+    if (!from || from.kind !== "train") continue; // nothing to move or skip (stale change)
+    if (c.kind === "skip") {
+      days[at(c.date)] = { kind: "rest", date: from.date, week: from.week, phase: from.phase, reason: "skipped" };
+      continue;
+    }
+    const i = at(c.toDate);
+    const to = days[i];
+    if (!to || i === at(c.date) || to.phase === "pre") continue;
+    days[i] = { ...from, date: to.date, week: to.week, phase: to.phase, optionalDay: to.phase === "rampin", movedFrom: from.movedFrom ?? from.date };
+    days[at(c.date)] =
+      to.kind === "train"
+        ? { ...to, date: from.date, week: from.week, phase: from.phase, optionalDay: from.phase === "rampin", movedFrom: to.movedFrom ?? to.date }
+        : bases[at(c.date)].kind === "rest"
+          ? bases[at(c.date)] // a session that had been moved onto a rest day leaves it
+          : { kind: "rest", date: from.date, week: from.week, phase: from.phase, reason: "moved", movedTo: to.date };
+  }
+  for (const d of days) {
+    if (d.kind === "train" && d.movedFrom === d.date) delete d.movedFrom; // moved back home
+  }
+  return days;
+}
+
+function basePlan(date: string, settings: ScheduleSettings): DayPlan {
   const week = weekNumber(date);
   const phase = phaseOf(date);
   const wd = weekday(date);

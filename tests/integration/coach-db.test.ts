@@ -4,6 +4,7 @@ import { LOCK_DOWN_SQL, MIGRATIONS } from "@/lib/db/migrations";
 import { attemptLogin, changePassword, createUser, bumpSessionVersion, LOCKOUT, type User } from "@/lib/auth/users";
 import { compareOutputs, loadEngineInput, replayHistory, runCoach } from "@/lib/fitness/agent";
 import {
+  addDayChange,
   addOverride,
   getCurrentRun,
   listReviews,
@@ -16,6 +17,7 @@ import {
   loadWeighIns,
   logSet,
   removeSet,
+  revokeDayChange,
   saveMeasurement,
   saveNutrition,
   saveSetting,
@@ -317,5 +319,48 @@ describe("coach runs", () => {
     const changed = structuredClone(run.output);
     changed.gate.status = changed.gate.status === "open" ? "closed" : "open";
     expect(compareOutputs(run.output, changed).map((d) => d.field)).toEqual(["gate"]);
+  });
+});
+
+describe("moving and skipping days", () => {
+  it("stores changes as history: the coach follows them, undo restores the day, the replay has no drift", async () => {
+    const u = await createUser(db, { email: "holiday@example.com", password: "moved-rest-day-31", displayName: "H" });
+    const wed = await runCoach(db, u.id, { trigger: "cron", at: at("2026-10-14", "07:00") });
+    expect(wed.run.output.card.session?.key).toBe("legs_q");
+
+    // Holiday on Wednesday: Legs Q moves to Sunday.
+    const move = await addDayChange(db, u.id, { kind: "move", date: "2026-10-14", toDate: "2026-10-18", reason: "Holiday" }, iso("2026-10-14", "07:30"));
+    const moved = await runCoach(db, u.id, { trigger: "settings", at: at("2026-10-14", "07:31") });
+    expect(moved.run.revision).toBe(2);
+    expect(moved.run.output.card).toMatchObject({ kind: "rest", restReason: "Today's session moved to Sun 18 Oct. Rest today." });
+    const settings = await loadSettings(db, u.id);
+    expect(settings.schedule.changes).toHaveLength(1);
+    // Before the change was made, the week had no changes.
+    expect((await loadSettings(db, u.id, iso("2026-10-14", "07:10"))).schedule.changes).toBeUndefined();
+
+    // Thursday is skipped, then the skip is undone.
+    const skip = await addDayChange(db, u.id, { kind: "skip", date: "2026-10-15" }, iso("2026-10-14", "20:00"));
+    const thu = await runCoach(db, u.id, { trigger: "cron", at: at("2026-10-15", "07:00") });
+    expect(thu.run.output.card.kind).toBe("rest");
+    expect(await revokeDayChange(db, u.id, skip, iso("2026-10-15", "07:10"))).toBe(true);
+    expect(await revokeDayChange(db, u.id, skip, iso("2026-10-15", "07:11"))).toBe(false);
+    const thu2 = await runCoach(db, u.id, { trigger: "settings", at: at("2026-10-15", "07:12") });
+    expect(thu2.run.output.card.session?.key).toBe("push_b");
+
+    const sun = await runCoach(db, u.id, { trigger: "cron", at: at("2026-10-18", "07:00") });
+    expect(sun.run.output.card.session?.key).toBe("legs_q");
+    expect(sun.run.output.card.notes[0]).toBe("Moved here from Wed 14 Oct.");
+    expect(move).toMatch(/^[0-9a-f-]{36}$/);
+
+    const replay = await replayHistory(db, u.id);
+    expect(replay.checked).toBe(3); // one per day: Wed, Thu, Sun
+    expect(replay.divergences).toEqual([]);
+  });
+
+  it("refuses a move without a target day at the database", async () => {
+    const [{ id }] = await db.query<{ id: string }>("select id from app_users limit 1");
+    await expect(
+      db.query("insert into day_changes (user_id, kind, date) values ($1, 'move', '2026-10-14'::date)", [id]),
+    ).rejects.toThrow();
   });
 });

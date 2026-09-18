@@ -58,6 +58,10 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
 - `schedule.ts`: weeks 1–2 ramp-in (trainer block, optional days, 2 sets), week 3 baseline,
   weeks 3–4 five days (rest day from settings, default Friday), week 5+ six days; deadlift
   from 5 Oct; RDL 4 sets until then.
+- **Day changes** (`day_changes`, page `/train/week`): `move` puts a day's session on another
+  day of the same Mon–Sun week (swapping if that day has one), `skip` makes it rest. They load
+  as `schedule.changes` in `loadSettings` (as of T, so replay sees them), and `dayPlan()` applies
+  them in recorded order. Days with logged sets can't be changed; undo stamps `superseded_at`.
 - `progression.ts` rebuilds every lift's state from the log on every run (events sorted by
   date; overrides dated D apply to D's card, sessions dated D apply from D+1). `card.ts` turns
   state into the workout card. `readiness.ts`, `nutrition.ts`, `bests.ts`, `coach.ts` do the

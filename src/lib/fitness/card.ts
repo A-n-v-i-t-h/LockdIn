@@ -143,12 +143,17 @@ export function buildCard(input: BuildCardInput): Card {
         ? "The program starts on Mon 7 Sep."
         : plan.reason === "build-rest"
           ? "Weeks 3–4 run five days. Rest today; the full six days start Mon 5 Oct."
-          : "Rest day: a 30–40 minute walk outside.";
+          : plan.reason === "moved"
+            ? `Today's session moved to ${fmtShort(plan.movedTo!)}. Rest today.`
+            : plan.reason === "skipped"
+              ? "Session skipped. Its lifts repeat unchanged next time."
+              : "Rest day: a 30–40 minute walk outside.";
     return { ...base, kind: "rest", restReason, session: null, optionalDay: false, slots: [], totalSets: 0, notes: [] };
   }
 
   const session: SessionDef = plan.session;
   const notes: string[] = [];
+  if (plan.movedFrom) notes.push(`Moved here from ${fmtShort(plan.movedFrom)}.`);
   if (plan.phase === "rampin") {
     notes.push("Ramp-in with your trainer: 3–4 days this week, about 50–60% of expected loads, 2 sets each, stop 4–5 reps short. Log what you did; it is kept but doesn't drive progression.");
   } else if (plan.phase === "baseline") {
