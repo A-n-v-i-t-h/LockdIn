@@ -192,10 +192,10 @@ test.describe("evening, Thursday 29 October 18:45", () => {
     await page.goto("/train/measure");
     // A real PNG: a small screenshot of the page itself.
     const PNG = await page.screenshot({ clip: { x: 0, y: 0, width: 60, height: 80 } });
-    await page.getByLabel("Waist (cm)").fill("75.5");
-    await page.getByLabel("Arm R (cm)").fill("32");
+    await page.getByRole("textbox", { name: /^Waist \(cm\)/ }).fill("75.5");
+    await page.getByRole("textbox", { name: /^Arm R \(cm\)/ }).fill("32");
     await openDetails(page, "Photos: front, side, back");
-    await page.getByLabel("front").setInputFiles({ name: "front.png", mimeType: "image/png", buffer: PNG });
+    await page.getByLabel("front", { exact: true }).setInputFiles({ name: "front.png", mimeType: "image/png", buffer: PNG });
     await expect(page.getByText(/front · \d+ KB/)).toBeVisible();
     await page.getByRole("button", { name: "Save measurements" }).click();
     await expect(page.getByText("Saved 2 measurements and 1 photo.")).toBeVisible();
