@@ -98,7 +98,7 @@ export default async function CoachPage({ searchParams }: { searchParams: Promis
       </p>
 
       <div className="sec" id="ai">
-        AI coach <span>runs 08:30 · Mondays weekly</span>
+        AI coach <span>runs 14:30 · Mondays weekly</span>
       </div>
       {sp.ai === "approved" ? (
         <p className="form-ok" role="status">

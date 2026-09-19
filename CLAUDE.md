@@ -80,7 +80,7 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
   keep v1 in `RULE_SETS`, switch `CURRENT_RULES`, update RULES.md. Hard bounds throw
   `RuleAssertionError` (P6 one step, A1 no singles before December).
 - The rule note is composed from the rule outputs. **The AI coach** (`src/lib/ai`, his decision
-  2026-09-19, reversing "a model must never set a number") is a daily Claude Code routine on his
+  2026-09-19, reversing "a model must never set a number") is a daily Claude Code routine (14:30 IST, `trig_01WARewPf5bXf6zd8EurcGKK`) on his
   subscription (no API key). It GETs `/api/ai/context` (brief, today's run, 8 weeks of log, its
   notebook, proposals) and POSTs `/api/ai/act` (note, notebook, changes), authenticated by
   `AI_COACH_TOKEN` for `AI_COACH_EMAIL`. Changes go through the normal append-only tables with
