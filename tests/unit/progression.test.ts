@@ -160,8 +160,8 @@ describe("double progression", () => {
 
 describe("accessory seeds (B2)", () => {
   it("starts from the first logged session and judges it", () => {
-    const r = run(sets("2026-09-22", "cs_row", 40, [10, 10, 9, 8]));
-    expect(r.states.cs_row).toMatchObject({ weight: 40, repTargets: [10, 10, 10, 9], seed: "log" });
+    const r = run(sets("2026-09-22", "cs_row", 40, [10, 10, 9]));
+    expect(r.states.cs_row).toMatchObject({ weight: 40, repTargets: [10, 10, 10], seed: "log" });
     expect(r.transitions.map((t) => [t.kind, t.rule])).toEqual([
       ["seed", "B2"],
       ["hold", "P2"],

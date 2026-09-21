@@ -57,6 +57,10 @@ function rng(seed: number) {
   };
 }
 
+/** Days the simulated season always misses, so "shown as missing" is always exercised. */
+const SKIPPED_MORNINGS = ["2026-09-30", "2026-10-21"];
+const SKIPPED_SESSIONS = ["2026-10-14", "2026-10-27"];
+
 export async function simulateSeason(db: Db, userId: string, opts: SimOptions): Promise<SimSummary> {
   const rand = rng(opts.seed ?? 20260907);
   const from = opts.from ?? "2026-09-07";
@@ -100,7 +104,7 @@ export async function simulateSeason(db: Db, userId: string, opts: SimOptions): 
     const at = (hhmm: string, bump = 0) => new Date(toInstant(date, hhmm).getTime() + bump * 1000).toISOString();
 
     // Morning: weigh-in and sleep (a few mornings are missed).
-    const skipMorning = date > "2026-09-20" && rand() < 0.04;
+    const skipMorning = SKIPPED_MORNINGS.includes(date) || (date > "2026-09-20" && rand() < 0.04);
     if (!skipMorning) {
       const bed = toInstant(addDays(date, -1), rand() < 0.2 ? "23:55" : "23:20");
       const sleepMin = 400 + Math.floor(rand() * 110);
@@ -145,7 +149,7 @@ export async function simulateSeason(db: Db, userId: string, opts: SimOptions): 
     const week = weekNumber(date);
     const trainsToday =
       card.kind === "train" &&
-      (week <= 2 ? rampDays[week]?.includes(wd) : rand() >= 0.05);
+      (week <= 2 ? rampDays[week]?.includes(wd) : !SKIPPED_SESSIONS.includes(date) && rand() >= 0.05);
     if (trainsToday && card.session) {
       const session = await startSession(db, userId, { date, sessionKey: card.session.key, runId: null }, at("18:30"));
       let seq = 0;

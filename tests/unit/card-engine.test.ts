@@ -62,8 +62,8 @@ describe("workout card", () => {
     expect(headlineSlot(c)?.track).toBe("bench_heavy");
   });
 
-  // He dropped the third bench session on 22 Sep to shorten Wednesday, from 23 Sep on.
-  it("drops the speed bench from 23 September and leaves Wednesday on quads", () => {
+  // He dropped the third bench session on 22 Sep, effective the same day.
+  it("drops the speed bench from 22 September and leaves Wednesday on quads", () => {
     const before = card("2026-09-16");
     expect(before.slots.some((s) => s.track === "bench_speed")).toBe(true);
     const after = card("2026-09-23", baselineWeek());

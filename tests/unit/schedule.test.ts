@@ -75,16 +75,16 @@ describe("program calendar", () => {
 });
 
 describe("Training01 data", () => {
-  // His 22 Sep cut: 4-set lifts became 1 warm-up + 3 working from Wednesday 23 Sep, and
+  // His 22 Sep cut: 4-set lifts became 1 warm-up + 3 working from that day, and
   // Wednesday's speed bench went. Both counts are asserted, because the old week still replays.
   const working = (keys: string[], date: string) =>
     SESSIONS.flatMap((s) => s.slots)
       .filter((sl) => keys.includes(sl.exercise))
       .reduce((a, sl) => a + (slotSets(sl, date) ?? 0), 0);
-  const BEFORE = "2026-09-22";
+  const BEFORE = "2026-09-21";
   const AFTER = "2026-10-06";
 
-  it("matched the plan's weekly set counts until 23 September", () => {
+  it("matched the plan's weekly set counts until 22 September", () => {
     expect(working(["cable_lateral_raise", "db_lateral_raise", "lean_away_lateral"], BEFORE)).toBe(16);
     expect(working(["incline_db_curl", "preacher_curl", "face_away_curl", "hammer_curl", "spider_curl"], BEFORE)).toBe(17);
     expect(working(["oh_cable_ext", "cable_kickback", "db_skullcrusher", "cable_pressdown"], BEFORE)).toBe(14);
@@ -93,7 +93,7 @@ describe("Training01 data", () => {
     expect(working(["bench_press"], BEFORE)).toBe(13); // heavy 4 + speed 5 + volume 4
   });
 
-  it("counts his cut from 23 September: 1 warm-up + 3 working, and no speed bench", () => {
+  it("counts his cut from 22 September: 1 warm-up + 3 working, and no speed bench", () => {
     expect(working(["cable_lateral_raise", "db_lateral_raise", "lean_away_lateral"], AFTER)).toBe(12);
     expect(working(["incline_db_curl", "preacher_curl", "face_away_curl", "hammer_curl", "spider_curl"], AFTER)).toBe(15);
     expect(working(["oh_cable_ext", "cable_kickback", "db_skullcrusher", "cable_pressdown"], AFTER)).toBe(12);
@@ -105,7 +105,7 @@ describe("Training01 data", () => {
     expect(wed.focus).toBe("Quads");
   });
 
-  it("prescribes warm-up sets from 23 September, on the compounds only", () => {
+  it("prescribes warm-up sets from 22 September, on the compounds only", () => {
     const bench = SESSIONS[0].slots.find((sl) => sl.track === "bench_heavy")!;
     expect(slotWarmups(bench, BEFORE)).toBe(0);
     expect(slotWarmups(bench, AFTER)).toBe(1);

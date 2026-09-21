@@ -63,7 +63,7 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
   change with `setsBefore` / `repsBefore` (old value before a date), `until` (dropped from a date;
   the slot stays so past days still replay and its track survives) or `warmups` (from a date), read
   through `slotSets` / `slotReps` / `slotWarmups`, and bump `PROGRAM_VERSION`. His 22 Sep volume cut
-  (effective 23 Sep) is the worked example: `D:\Dev\Gym\docs\03-training.md` → Change 2026-09-22.
+  (effective that day) is the worked example: `D:\Dev\Gym\docs\03-training.md` → Change 2026-09-22.
 - **Day changes** (`day_changes`, page `/train/week`): `move` puts a day's session on another
   day of the same Mon–Sun week (swapping if that day has one), `skip` makes it rest. They load
   as `schedule.changes` in `loadSettings` (as of T, so replay sees them), and `dayPlan()` applies
