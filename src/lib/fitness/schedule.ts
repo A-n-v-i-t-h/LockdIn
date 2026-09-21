@@ -129,12 +129,25 @@ function basePlan(date: string, settings: ScheduleSettings): DayPlan {
   return { kind: "train", date, week, phase, session, optionalDay: phase === "rampin" };
 }
 
-/** Is this slot part of the session on this date, and with how many sets? */
+/** Is this slot part of the session on this date, and with how many working sets? */
 export function slotSets(slot: SlotDef, date: string): number | null {
   if (slot.from && date < slot.from) return null;
+  if (slot.until && date >= slot.until) return null;
   if (isRampIn(date)) return 2;
   if (slot.setsBefore && date < slot.setsBefore.date) return slot.setsBefore.sets;
   return slot.sets;
+}
+
+/** The rep range on this date (a range can change on a date, and the old one still replays). */
+export function slotReps(slot: SlotDef, date: string): [number, number] {
+  if (slot.repsBefore && date < slot.repsBefore.date) return slot.repsBefore.reps;
+  return slot.reps;
+}
+
+/** Warm-up sets prescribed on this date. Guidance on the card; never progression volume. */
+export function slotWarmups(slot: SlotDef, date: string): number {
+  if (!slot.warmups || date < slot.warmups.from || isRampIn(date)) return 0;
+  return slot.warmups.sets;
 }
 
 /** Next date (after `after`) on which a track is scheduled. */

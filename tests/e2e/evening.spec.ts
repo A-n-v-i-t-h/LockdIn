@@ -19,17 +19,17 @@ test.describe("evening, Thursday 29 October 18:45", () => {
     const errors = watchErrors(page);
     await page.goto("/train");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Push B");
-    await expect(page.getByText("0 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("0 of 18 sets logged")).toBeVisible();
 
     const bench = page.locator('section[data-slot="1"]');
     await expect(bench.getByRole("heading")).toHaveText("Barbell Bench Press");
     await bench.getByRole("button", { name: "Done as planned" }).click();
-    await expect(page.getByText("1 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("1 of 18 sets logged")).toBeVisible();
     await expect(page.getByRole("timer")).toBeVisible();
     await page.getByRole("button", { name: "Dismiss rest timer" }).click();
 
     await bench.getByRole("button", { name: "− rep" }).click();
-    await expect(page.getByText("2 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("2 of 18 sets logged")).toBeVisible();
     await page.getByRole("button", { name: "Dismiss rest timer" }).click();
 
     // Edit set 2 with the steppers.
@@ -44,7 +44,7 @@ test.describe("evening, Thursday 29 October 18:45", () => {
     // Remove set 2.
     await bench.getByRole("button", { name: /^Set 2: logged/ }).click();
     await bench.getByRole("button", { name: "Remove" }).click();
-    await expect(page.getByText("1 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("1 of 18 sets logged")).toBeVisible();
 
     // A bad number is refused in the editor.
     await bench.getByRole("button", { name: /^Set 3: enter weight/ }).click();
@@ -62,12 +62,12 @@ test.describe("evening, Thursday 29 October 18:45", () => {
     await slot2.getByLabel("Weight in kilograms").fill("15");
     await slot2.getByLabel("Reps", { exact: true }).fill("9");
     await slot2.getByRole("button", { name: "Log set" }).click();
-    await expect(page.getByText("2 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("2 of 18 sets logged")).toBeVisible();
     await expect(slot2.getByRole("button", { name: /Back to Incline Smith Press/ })).toBeDisabled();
 
     // Everything survives a reload.
     await page.reload();
-    await expect(page.getByText("2 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("2 of 18 sets logged")).toBeVisible();
     await expect(page.locator('section[data-slot="2"]').getByRole("heading")).toHaveText("Incline Dumbbell Press");
 
     // An extra exercise.
@@ -79,7 +79,7 @@ test.describe("evening, Thursday 29 October 18:45", () => {
     await extra.getByLabel("Weight in kilograms").fill("10");
     await extra.getByLabel("Reps", { exact: true }).fill("15");
     await extra.getByRole("button", { name: "Log set" }).click();
-    await expect(page.getByText("3 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("3 of 18 sets logged")).toBeVisible();
 
     // Finish with a note.
     await page.getByLabel("Session note (optional)").fill("Felt good, elbows fine");
@@ -96,13 +96,13 @@ test.describe("evening, Thursday 29 October 18:45", () => {
     // Reopen and it's editable again.
     await page.goto("/train");
     await page.getByRole("button", { name: "Edit this session" }).click();
-    await expect(page.getByText("3 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("3 of 18 sets logged")).toBeVisible();
 
     // The day appears in history.
     await page.goto("/train/history");
     await page.getByRole("link", { name: /Thu 29 Oct/ }).first().click();
     await expect(page).toHaveURL(/\/train\/history\/2026-10-29$/);
-    await expect(page.getByText("3 of 21 sets logged")).toBeVisible();
+    await expect(page.getByText("3 of 18 sets logged")).toBeVisible();
     await expect(page.getByText(/· still open/)).toBeVisible();
     expect(errors).toEqual([]);
   });
@@ -234,7 +234,8 @@ test.describe("evening, Thursday 29 October 18:45", () => {
 
     // With 2.5 kg as the smallest plate a bench step is 5 kg.
     await page.goto("/train");
-    await page.locator('section[data-slot="1"]').getByRole("button", { name: /^Set 1:/ }).click();
+    // The set the earlier test left unlogged, so this doesn't depend on its state.
+    await page.locator('section[data-slot="1"]').getByRole("button", { name: /enter weight and reps/ }).first().click();
     await page.locator('section[data-slot="1"]').getByRole("button", { name: "More weight" }).click();
     await expect(page.locator('section[data-slot="1"]').getByText("Step 5 kg.")).toBeVisible();
 

@@ -58,6 +58,12 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
 - `schedule.ts`: weeks 1–2 ramp-in (trainer block, optional days, 2 sets), week 3 baseline,
   weeks 3–4 five days (rest day from settings, default Friday), week 5+ six days; deadlift
   from 5 Oct; RDL 4 sets until then.
+- **Program edits are dated, never retroactive.** The replay compares each stored card's sets,
+  weight and reps, so editing a slot in place would report every past run as drift. Express a
+  change with `setsBefore` / `repsBefore` (old value before a date), `until` (dropped from a date;
+  the slot stays so past days still replay and its track survives) or `warmups` (from a date), read
+  through `slotSets` / `slotReps` / `slotWarmups`, and bump `PROGRAM_VERSION`. His 22 Sep volume cut
+  (effective 23 Sep) is the worked example: `D:\Dev\Gym\docs-training.md` → Change 2026-09-22.
 - **Day changes** (`day_changes`, page `/train/week`): `move` puts a day's session on another
   day of the same Mon–Sun week (swapping if that day has one), `skip` makes it rest. They load
   as `schedule.changes` in `loadSettings` (as of T, so replay sees them), and `dayPlan()` applies

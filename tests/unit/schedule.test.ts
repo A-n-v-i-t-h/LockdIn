@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayPlan, isRampIn, nextDateForTrack, phaseOf, slotSets, weekNumber } from "@/lib/fitness/schedule";
+import { dayPlan, isRampIn, nextDateForTrack, phaseOf, slotReps, slotSets, slotWarmups, weekNumber } from "@/lib/fitness/schedule";
 import { SESSIONS, TRACKS, EXERCISES, substituteTrack, parseSubstituteTrack, schemeForTrack, rirValue, restSeconds } from "@/lib/fitness/program";
 
 describe("program calendar", () => {
@@ -75,16 +75,53 @@ describe("program calendar", () => {
 });
 
 describe("Training01 data", () => {
-  it("matches the plan's weekly set counts", () => {
-    const direct = (keys: string[]) =>
-      SESSIONS.flatMap((s) => s.slots)
-        .filter((sl) => keys.includes(sl.exercise) && !sl.optional)
-        .reduce((a, sl) => a + sl.sets, 0);
-    expect(direct(["cable_lateral_raise", "db_lateral_raise", "lean_away_lateral"])).toBe(16);
-    expect(direct(["incline_db_curl", "preacher_curl", "face_away_curl", "hammer_curl", "spider_curl"])).toBe(17);
-    expect(direct(["oh_cable_ext", "cable_kickback", "db_skullcrusher", "cable_pressdown"])).toBe(14);
-    expect(direct(["neck"])).toBe(6);
-    expect(direct(["wrist_curl", "reverse_wrist_curl"])).toBe(6);
+  // His 22 Sep cut: 4-set lifts became 1 warm-up + 3 working from Wednesday 23 Sep, and
+  // Wednesday's speed bench went. Both counts are asserted, because the old week still replays.
+  const working = (keys: string[], date: string) =>
+    SESSIONS.flatMap((s) => s.slots)
+      .filter((sl) => keys.includes(sl.exercise))
+      .reduce((a, sl) => a + (slotSets(sl, date) ?? 0), 0);
+  const BEFORE = "2026-09-22";
+  const AFTER = "2026-10-06";
+
+  it("matched the plan's weekly set counts until 23 September", () => {
+    expect(working(["cable_lateral_raise", "db_lateral_raise", "lean_away_lateral"], BEFORE)).toBe(16);
+    expect(working(["incline_db_curl", "preacher_curl", "face_away_curl", "hammer_curl", "spider_curl"], BEFORE)).toBe(17);
+    expect(working(["oh_cable_ext", "cable_kickback", "db_skullcrusher", "cable_pressdown"], BEFORE)).toBe(14);
+    expect(working(["neck"], BEFORE)).toBe(6);
+    expect(working(["wrist_curl", "reverse_wrist_curl"], BEFORE)).toBe(6);
+    expect(working(["bench_press"], BEFORE)).toBe(13); // heavy 4 + speed 5 + volume 4
+  });
+
+  it("counts his cut from 23 September: 1 warm-up + 3 working, and no speed bench", () => {
+    expect(working(["cable_lateral_raise", "db_lateral_raise", "lean_away_lateral"], AFTER)).toBe(12);
+    expect(working(["incline_db_curl", "preacher_curl", "face_away_curl", "hammer_curl", "spider_curl"], AFTER)).toBe(15);
+    expect(working(["oh_cable_ext", "cable_kickback", "db_skullcrusher", "cable_pressdown"], AFTER)).toBe(12);
+    expect(working(["bench_press"], AFTER)).toBe(6); // heavy 3 + volume 3, speed gone
+    const wed = SESSIONS.find((s) => s.key === "legs_q")!;
+    const speed = wed.slots.find((sl) => sl.track === "bench_speed")!;
+    expect(slotSets(speed, BEFORE)).toBe(5);
+    expect(slotSets(speed, AFTER)).toBeNull();
+    expect(wed.focus).toBe("Quads");
+  });
+
+  it("prescribes warm-up sets from 23 September, on the compounds only", () => {
+    const bench = SESSIONS[0].slots.find((sl) => sl.track === "bench_heavy")!;
+    expect(slotWarmups(bench, BEFORE)).toBe(0);
+    expect(slotWarmups(bench, AFTER)).toBe(1);
+    const kickback = SESSIONS[0].slots.find((sl) => sl.track === "cable_kickback")!;
+    expect(slotWarmups(kickback, AFTER)).toBe(0);
+    const withWarmups = SESSIONS.flatMap((s) => s.slots).filter((sl) => slotWarmups(sl, AFTER) > 0);
+    expect(withWarmups).toHaveLength(8);
+  });
+
+  it("keeps the old rep ranges for past days", () => {
+    const pullup = SESSIONS[1].slots.find((sl) => sl.track === "pullup_weighted")!;
+    expect(slotReps(pullup, BEFORE)).toEqual([4, 6]);
+    expect(slotReps(pullup, AFTER)).toEqual([4, 8]);
+    const legExt = SESSIONS[5].slots.find((sl) => sl.track === "leg_extension")!;
+    expect(slotReps(legExt, BEFORE)).toEqual([12, 15]);
+    expect(slotReps(legExt, AFTER)).toEqual([8, 12]);
   });
 
   it("gives every exercise on the card a known substitute with its own track", () => {

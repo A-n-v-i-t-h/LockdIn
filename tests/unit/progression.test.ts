@@ -97,8 +97,8 @@ describe("week-3 baselines (B1)", () => {
 
 describe("double progression", () => {
   it("adds one step when every set reaches the top of the range (P1)", () => {
-    const r = run([...benchTest(), ...sets("2026-09-28", "bench_heavy", 47.5, [6, 6, 6, 6])]);
-    expect(r.states.bench_heavy).toMatchObject({ weight: 50, repTargets: [4, 4, 4, 4], successes: 1, misses: 0 });
+    const r = run([...benchTest(), ...sets("2026-09-28", "bench_heavy", 47.5, [6, 6, 6])]);
+    expect(r.states.bench_heavy).toMatchObject({ weight: 50, repTargets: [4, 4, 4], successes: 1, misses: 0 });
     const inc = r.transitions.find((t) => t.kind === "increase")!;
     expect(inc).toMatchObject({ rule: "P1", from: { weight: 47.5 }, to: { weight: 50 } });
     expect(inc.reason).toContain("47.5 kg");
@@ -106,28 +106,28 @@ describe("double progression", () => {
   });
 
   it("holds the load and adds a rep inside the range (P2)", () => {
-    const r = run([...benchTest(), ...sets("2026-10-01", "bench_volume", 42.5, [10, 9, 8, 8])]);
-    expect(r.states.bench_volume).toMatchObject({ weight: 42.5, repTargets: [10, 10, 9, 9], misses: 0 });
+    const r = run([...benchTest(), ...sets("2026-10-01", "bench_volume", 42.5, [10, 9, 8])]);
+    expect(r.states.bench_volume).toMatchObject({ weight: 42.5, repTargets: [10, 10, 9], misses: 0 });
     expect(r.transitions.at(-1)).toMatchObject({ kind: "hold", rule: "P2" });
     expect(isChange(r.transitions.at(-1)!)).toBe(false);
   });
 
   it("asks for the missing sets when a session is cut short", () => {
     const r = run([...benchTest(), ...sets("2026-10-01", "bench_volume", 42.5, [10, 10])]);
-    expect(r.states.bench_volume.repTargets).toEqual([10, 10, 8, 8]);
-    expect(r.transitions.at(-1)!.reason).toContain("2 of 4 sets");
+    expect(r.states.bench_volume.repTargets).toEqual([10, 10, 8]);
+    expect(r.transitions.at(-1)!.reason).toContain("2 of 3 sets");
   });
 
   it("counts misses and deloads 10% on the third in a row (P3)", () => {
     const all = [
       ...benchTest(),
-      ...sets("2026-10-01", "bench_volume", 42.5, [7, 6, 6, 6]),
-      ...sets("2026-10-08", "bench_volume", 42.5, [7, 7, 6, 6]),
+      ...sets("2026-10-01", "bench_volume", 42.5, [7, 6, 6]),
+      ...sets("2026-10-08", "bench_volume", 42.5, [7, 7, 6]),
     ];
     const two = run(all);
-    expect(two.states.bench_volume).toMatchObject({ weight: 42.5, misses: 2, repTargets: [8, 8, 8, 8] });
-    const three = run([...all, ...sets("2026-10-15", "bench_volume", 42.5, [7, 6, 6, 5])]);
-    expect(three.states.bench_volume).toMatchObject({ weight: 37.5, misses: 0, lastDeload: "2026-10-15", repTargets: [8, 8, 8, 8] });
+    expect(two.states.bench_volume).toMatchObject({ weight: 42.5, misses: 2, repTargets: [8, 8, 8] });
+    const three = run([...all, ...sets("2026-10-15", "bench_volume", 42.5, [7, 6, 5])]);
+    expect(three.states.bench_volume).toMatchObject({ weight: 37.5, misses: 0, lastDeload: "2026-10-15", repTargets: [8, 8, 8] });
     expect(three.transitions.at(-1)).toMatchObject({ kind: "deload", rule: "P3", from: { weight: 42.5 }, to: { weight: 37.5 } });
   });
 
@@ -186,7 +186,7 @@ describe("the log is truth (P4) and one change per week (P5)", () => {
       ["follow_log", "P4"],
       ["blocked_week", "P5"],
     ]);
-    expect(r1.states.bench_volume).toMatchObject({ weight: 40, repTargets: [10, 10, 10, 10] });
+    expect(r1.states.bench_volume).toMatchObject({ weight: 40, repTargets: [10, 10, 10] });
     const r2 = run([
       ...benchTest(),
       ...sets("2026-10-01", "bench_volume", 40, [10, 10, 10, 10]),
@@ -259,8 +259,8 @@ describe("overrides (O1)", () => {
   });
 
   it("can set rep targets within the range", () => {
-    const r = run(benchTest(), [override("2026-09-23", "bench_volume", "reps", [12, 9, 3, 9])]);
-    expect(r.states.bench_volume.repTargets).toEqual([10, 9, 8, 9]);
+    const r = run(benchTest(), [override("2026-09-23", "bench_volume", "reps", [12, 9, 3])]);
+    expect(r.states.bench_volume.repTargets).toEqual([10, 9, 8]);
   });
 
   it("applies an override before that day's session", () => {

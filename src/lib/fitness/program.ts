@@ -2,7 +2,7 @@
 // This file is the machine-readable copy the coach programs from. Change it only
 // when the plan changes, and bump PROGRAM_VERSION when you do.
 
-export const PROGRAM_VERSION = "training01";
+export const PROGRAM_VERSION = "training01.2";
 export const PROGRAM_START = "2026-09-07"; // Monday of week 1
 export const BASELINE_WEEK_START = "2026-09-21"; // week 3
 export const FULL_PROGRAM_START = "2026-10-05"; // week 5
@@ -179,7 +179,7 @@ export const EXERCISES: Record<string, ExerciseDef> = Object.fromEntries([
     equipment: "dumbbell",
     station: "Flat bench",
     cue: "One dumbbell per hand, palms facing. Lower beside and behind the head, stop just short of lockout.",
-    substitute: "oh_db_ext",
+    substitute: "db_kickback",
   }),
   ex({
     key: "cable_pressdown",
@@ -335,7 +335,7 @@ export const EXERCISES: Record<string, ExerciseDef> = Object.fromEntries([
     equipment: "dumbbell",
     station: "Adjustable bench at ~45°, chest down",
     cue: "Arms hang straight down in front of the bench. Upper arms stay vertical; squeeze at the top, 2 s down.",
-    substitute: "preacher_curl",
+    substitute: "db_preacher_curl",
   }),
   ex({
     key: "bayesian_curl",
@@ -548,6 +548,12 @@ export interface SlotDef {
   from?: string;
   /** Different set count before a date (RDL keeps 4 sets until the deadlift enters). */
   setsBefore?: { date: string; sets: number };
+  /** Dropped from this date on. The slot stays here so past days still replay exactly. */
+  until?: string;
+  /** Different rep range before a date. */
+  repsBefore?: { date: string; reps: [number, number] };
+  /** Warm-up sets prescribed from a date (they are guidance, never progression volume). */
+  warmups?: { from: string; sets: number };
   note?: string;
 }
 
@@ -567,13 +573,13 @@ export const SESSIONS: SessionDef[] = [
     weekday: 1,
     name: "Push A",
     focus: "Heavy bench",
-    minutes: 80,
+    minutes: 70,
     slots: [
-      { slot: "1", exercise: "bench_press", track: "bench_heavy", sets: 4, reps: [4, 6], rir: "1", rest: "3 min" },
-      { slot: "2", exercise: "incline_db_press", track: "incline_db_press", sets: 3, reps: [8, 10], rir: "2", rest: "2 min" },
+      { slot: "1", exercise: "bench_press", track: "bench_heavy", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, warmups: { from: "2026-09-23", sets: 1 }, reps: [4, 6], rir: "1", rest: "2–3 min" },
+      { slot: "2", exercise: "incline_db_press", track: "incline_db_press", sets: 3, warmups: { from: "2026-09-23", sets: 1 }, reps: [8, 10], rir: "2", rest: "2 min" },
       { slot: "3", exercise: "ohp", track: "ohp", sets: 3, reps: [6, 8], rir: "2", rest: "2–3 min" },
-      { slot: "4", exercise: "cable_lateral_raise", track: "cable_lateral_raise", sets: 4, reps: [12, 15], rir: "1", rest: "90 s" },
-      { slot: "5", exercise: "oh_cable_ext", track: "oh_cable_ext", sets: 4, reps: [10, 12], rir: "2", rest: "90 s", note: "Each arm; rest after both" },
+      { slot: "4", exercise: "cable_lateral_raise", track: "cable_lateral_raise", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [12, 15], rir: "1", rest: "90 s" },
+      { slot: "5", exercise: "oh_cable_ext", track: "oh_cable_ext", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [10, 12], rir: "2", rest: "90 s", note: "Each arm; rest after both" },
       { slot: "6", exercise: "cable_kickback", track: "cable_kickback", sets: 3, reps: [12, 15], rir: "1", rest: "60 s" },
       { slot: "7", exercise: "cable_crunch", track: "cable_crunch", sets: 3, reps: [12, 15], rir: "2", rest: "60 s" },
     ],
@@ -583,13 +589,13 @@ export const SESSIONS: SessionDef[] = [
     weekday: 2,
     name: "Pull A",
     focus: "Heavy pull-ups",
-    minutes: 68,
+    minutes: 62,
     cardio: "20 min easy (capped)",
     slots: [
-      { slot: "1", exercise: "pullup", track: "pullup_weighted", label: "Weighted Pull-up", sets: 4, reps: [4, 6], rir: "1–2", rest: "3 min" },
-      { slot: "2", exercise: "cs_row", track: "cs_row", sets: 4, reps: [8, 10], rir: "2", rest: "2 min" },
+      { slot: "1", exercise: "pullup", track: "pullup_weighted", label: "Weighted Pull-up", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [4, 8], repsBefore: { date: "2026-09-23", reps: [4, 6] }, rir: "1–2", rest: "3 min" },
+      { slot: "2", exercise: "cs_row", track: "cs_row", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, warmups: { from: "2026-09-23", sets: 1 }, reps: [8, 10], rir: "2", rest: "2 min" },
       { slot: "3", exercise: "reverse_pec_deck", track: "reverse_pec_deck", sets: 3, reps: [12, 15], rir: "1", rest: "90 s" },
-      { slot: "4", exercise: "incline_db_curl", track: "incline_db_curl", sets: 4, reps: [8, 12], rir: "2", rest: "90 s" },
+      { slot: "4", exercise: "incline_db_curl", track: "incline_db_curl", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [8, 12], rir: "2", rest: "90 s" },
       { slot: "5", exercise: "preacher_curl", track: "preacher_curl", sets: 3, reps: [8, 12], rir: "2", rest: "90 s" },
       { slot: "6a", exercise: "wrist_curl", track: "wrist_curl", sets: 3, reps: [12, 15], rir: "1", rest: "—", supersetWith: "6b" },
       { slot: "6b", exercise: "reverse_wrist_curl", track: "reverse_wrist_curl", sets: 3, reps: [15, 20], rir: "1", rest: "60 s", supersetWith: "6a", note: "Rest after the pair" },
@@ -599,15 +605,15 @@ export const SESSIONS: SessionDef[] = [
     key: "legs_q",
     weekday: 3,
     name: "Legs Q",
-    focus: "Quads + bench technique",
-    minutes: 65,
+    focus: "Quads",
+    minutes: 55,
     slots: [
-      { slot: "1", exercise: "bench_press", track: "bench_speed", label: "Bench Press — speed", sets: 5, reps: [3, 3], rir: "—", rest: "90 s", percentOfMax: 0.6, note: "Max bar speed, full reset. Never grind." },
-      { slot: "2", exercise: "back_squat", track: "back_squat", sets: 4, reps: [6, 8], rir: "2", rest: "3 min" },
-      { slot: "3", exercise: "leg_press", track: "leg_press", sets: 3, reps: [10, 12], rir: "2", rest: "2 min" },
+      { slot: "1", exercise: "bench_press", track: "bench_speed", label: "Bench Press — speed", sets: 5, reps: [3, 3], rir: "—", rest: "90 s", percentOfMax: 0.6, until: "2026-09-23", note: "Dropped from 23 Sep: he cut the third bench session to shorten Wednesday." },
+      { slot: "2", exercise: "back_squat", track: "back_squat", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, warmups: { from: "2026-09-23", sets: 1 }, reps: [6, 8], rir: "2", rest: "3 min" },
+      { slot: "3", exercise: "leg_press", track: "leg_press", sets: 3, warmups: { from: "2026-09-23", sets: 1 }, reps: [10, 12], rir: "2", rest: "2 min" },
       { slot: "4", exercise: "standing_leg_curl", track: "standing_leg_curl", sets: 3, reps: [10, 12], rir: "2", rest: "90 s", note: "Each leg; rest after both" },
-      { slot: "5", exercise: "db_lateral_raise", track: "db_lateral_raise", sets: 4, reps: [12, 15], rir: "1", rest: "90 s" },
-      { slot: "6", exercise: "neck", track: "neck", sets: 3, reps: [15, 20], rir: "2", rest: "60 s" },
+      { slot: "5", exercise: "db_lateral_raise", track: "db_lateral_raise", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [12, 15], rir: "1", rest: "90 s" },
+      { slot: "6", exercise: "neck", track: "neck", sets: 3, reps: [15, 20], rir: "2", rest: "60 s", optional: true },
     ],
   },
   {
@@ -615,12 +621,12 @@ export const SESSIONS: SessionDef[] = [
     weekday: 4,
     name: "Push B",
     focus: "Volume bench",
-    minutes: 70,
+    minutes: 60,
     slots: [
-      { slot: "1", exercise: "bench_press", track: "bench_volume", sets: 4, reps: [8, 10], rir: "2", rest: "2–3 min" },
-      { slot: "2", exercise: "incline_smith_press", track: "incline_smith_press", sets: 3, reps: [8, 12], rir: "2", rest: "2 min" },
-      { slot: "3", exercise: "cable_lateral_raise", track: "cable_lateral_raise", sets: 4, reps: [12, 15], rir: "1", rest: "90 s" },
-      { slot: "4", exercise: "db_skullcrusher", track: "db_skullcrusher", sets: 4, reps: [10, 12], rir: "2", rest: "90 s" },
+      { slot: "1", exercise: "bench_press", track: "bench_volume", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, warmups: { from: "2026-09-23", sets: 1 }, reps: [8, 10], rir: "2", rest: "2–3 min" },
+      { slot: "2", exercise: "incline_smith_press", track: "incline_smith_press", sets: 3, warmups: { from: "2026-09-23", sets: 1 }, reps: [8, 12], rir: "2", rest: "2 min" },
+      { slot: "3", exercise: "cable_lateral_raise", track: "cable_lateral_raise", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [12, 15], rir: "1", rest: "90 s" },
+      { slot: "4", exercise: "db_skullcrusher", track: "db_skullcrusher", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [10, 12], rir: "2", rest: "90 s" },
       { slot: "5", exercise: "cable_pressdown", track: "cable_pressdown", sets: 3, reps: [12, 15], rir: "1", rest: "90 s" },
       { slot: "6", exercise: "hanging_leg_raise", track: "hanging_leg_raise", sets: 3, reps: [10, 15], rir: "2", rest: "60 s" },
     ],
@@ -630,14 +636,14 @@ export const SESSIONS: SessionDef[] = [
     weekday: 5,
     name: "Pull B",
     focus: "Pull volume",
-    minutes: 65,
+    minutes: 60,
     cardio: "20–30 min easy",
     slots: [
-      { slot: "1", exercise: "pullup", track: "pullup_bw", label: "Pull-up (BW or light)", sets: 4, reps: [8, 12], rir: "2", rest: "2–3 min", note: "Same grip and width as Tuesday" },
-      { slot: "2", exercise: "seated_cable_row", track: "seated_cable_row", sets: 4, reps: [10, 12], rir: "2", rest: "2 min" },
+      { slot: "1", exercise: "pullup", track: "pullup_bw", label: "Pull-up (BW or light)", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [8, 12], rir: "2", rest: "2–3 min", note: "Same grip and width as Tuesday" },
+      { slot: "2", exercise: "seated_cable_row", track: "seated_cable_row", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, warmups: { from: "2026-09-23", sets: 1 }, reps: [10, 12], rir: "2", rest: "2 min" },
       { slot: "3", exercise: "face_pull", track: "face_pull", sets: 3, reps: [15, 20], rir: "1", rest: "60 s" },
       { slot: "4", exercise: "face_away_curl", track: "face_away_curl", sets: 3, reps: [10, 12], rir: "2", rest: "90 s" },
-      { slot: "5", exercise: "hammer_curl", track: "hammer_curl", sets: 4, reps: [10, 12], rir: "2", rest: "90 s" },
+      { slot: "5", exercise: "hammer_curl", track: "hammer_curl", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [10, 12], rir: "2", rest: "90 s" },
       { slot: "6", exercise: "spider_curl", track: "spider_curl", sets: 3, reps: [10, 12], rir: "2", rest: "90 s" },
     ],
   },
@@ -646,13 +652,13 @@ export const SESSIONS: SessionDef[] = [
     weekday: 6,
     name: "Legs P",
     focus: "Posterior + delts",
-    minutes: 70,
+    minutes: 68,
     slots: [
       { slot: "1", exercise: "deadlift", track: "deadlift", sets: 3, reps: [5, 5], rir: "2–3", rest: "3 min", from: FULL_PROGRAM_START, note: "Technique first: dead stop every rep" },
       { slot: "2", exercise: "rdl", track: "rdl", sets: 3, reps: [8, 10], rir: "2", rest: "2–3 min", setsBefore: { date: FULL_PROGRAM_START, sets: 4 } },
       { slot: "3", exercise: "standing_leg_curl", track: "standing_leg_curl", sets: 3, reps: [10, 12], rir: "1", rest: "90 s", note: "Each leg; rest after both" },
-      { slot: "4", exercise: "leg_extension", track: "leg_extension", sets: 3, reps: [12, 15], rir: "1", rest: "90 s" },
-      { slot: "5", exercise: "lean_away_lateral", track: "lean_away_lateral", sets: 4, reps: [12, 15], rir: "1", rest: "90 s" },
+      { slot: "4", exercise: "leg_extension", track: "leg_extension", sets: 3, reps: [8, 12], repsBefore: { date: "2026-09-23", reps: [12, 15] }, rir: "1", rest: "90 s" },
+      { slot: "5", exercise: "lean_away_lateral", track: "lean_away_lateral", sets: 3, setsBefore: { date: "2026-09-23", sets: 4 }, reps: [12, 15], rir: "1", rest: "90 s" },
       { slot: "6", exercise: "neck", track: "neck", sets: 3, reps: [15, 20], rir: "2", rest: "60 s" },
       { slot: "7", exercise: "lp_calf_raise", track: "lp_calf_raise", sets: 3, reps: [12, 15], rir: "1", rest: "60 s", optional: true },
     ],

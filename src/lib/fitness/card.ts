@@ -26,7 +26,7 @@ import {
 } from "./progression";
 import { withinDeloadWindow, type Gate } from "./readiness";
 import type { RuleSet } from "./rules";
-import { dayPlan, isRampIn, PHASE_LABEL, slotSets, type DayPlan, type Phase, type ScheduleSettings } from "./schedule";
+import { dayPlan, isRampIn, PHASE_LABEL, slotReps, slotSets, slotWarmups, type DayPlan, type Phase, type ScheduleSettings } from "./schedule";
 
 export type SlotStatus = "working" | "baseline_test" | "choose_load" | "percent" | "reps_only" | "rampin";
 
@@ -57,6 +57,8 @@ export interface CardSlot {
   status: SlotStatus;
   sets: number;
   reps: [number, number];
+  /** Warm-up sets to do before the working sets. Guidance only: they are not logged volume. */
+  warmups: number;
   repTargets: number[];
   rir: string;
   rest: string;
@@ -171,7 +173,7 @@ export function buildCard(input: BuildCardInput): Card {
     if (n === null) continue;
     const ex = exercise(def.exercise);
     const mode = loadModeOf(ex);
-    const [lo, hi] = def.reps;
+    const [lo, hi] = slotReps(def, input.date);
     const st = input.states[def.track];
     const step = stepFor(ex, input.gym);
     let status: SlotStatus;
@@ -268,7 +270,8 @@ export function buildCard(input: BuildCardInput): Card {
       track: def.track,
       status,
       sets: status === "baseline_test" ? repTargets.length : n,
-      reps: def.reps,
+      reps: slotReps(def, input.date),
+      warmups: slotWarmups(def, input.date),
       repTargets,
       rir: def.rir,
       rest: def.rest,

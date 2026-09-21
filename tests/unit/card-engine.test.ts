@@ -56,17 +56,21 @@ describe("workout card", () => {
   it("prefills working loads from the baselines", () => {
     const c = card("2026-09-28", baselineWeek());
     const bench = c.slots.find((s) => s.track === "bench_heavy")!;
-    expect(bench).toMatchObject({ status: "working", weight: 47.5, repTargets: [4, 4, 4, 4] });
+    expect(bench).toMatchObject({ status: "working", weight: 47.5, repTargets: [4, 4, 4], warmups: 1 });
     expect(bench.change).toMatchObject({ from: null, to: 47.5, rule: "B1" });
     expect(bench.plates?.map((p) => p.kg)).toEqual([10, 2.5, 1.25]);
     expect(headlineSlot(c)?.track).toBe("bench_heavy");
   });
 
-  it("prescribes speed bench at 60% of the estimated max", () => {
-    const c = card("2026-10-07", [...baselineWeek(), ...sets("2026-10-01", "bench_volume", 45, [10, 10, 10, 10])]);
-    const speed = c.slots.find((s) => s.track === "bench_speed")!;
-    // 60% of 60 kg (45 × 10) = 36 → 35 on the bar.
-    expect(speed).toMatchObject({ status: "percent", weight: 35, sets: 5, repTargets: [3, 3, 3, 3, 3] });
+  // He dropped the third bench session on 22 Sep to shorten Wednesday, from 23 Sep on.
+  it("drops the speed bench from 23 September and leaves Wednesday on quads", () => {
+    const before = card("2026-09-16");
+    expect(before.slots.some((s) => s.track === "bench_speed")).toBe(true);
+    const after = card("2026-09-23", baselineWeek());
+    expect(after.slots.some((s) => s.track === "bench_speed")).toBe(false);
+    expect(after.session).toMatchObject({ name: "Legs Q", focus: "Quads" });
+    expect(after.slots.map((s) => s.track)).toEqual(["back_squat", "leg_press", "standing_leg_curl", "db_lateral_raise", "neck"]);
+    expect(card("2026-10-07", baselineWeek()).slots.some((s) => s.track === "bench_speed")).toBe(false);
   });
 
   it("brings in the deadlift in week 5 at 60% of the 8-rep RDL", () => {
@@ -121,7 +125,7 @@ describe("workout card", () => {
   it("lists every slot of the day's session in order", () => {
     const c = card("2026-10-06", baselineWeek());
     expect(c.slots.map((s) => s.slot)).toEqual(SESSIONS[1].slots.map((s) => s.slot));
-    expect(c.totalSets).toBe(24);
+    expect(c.totalSets).toBe(21);
     expect(c.session).toMatchObject({ name: "Pull A", cardio: "20 min easy (capped)" });
   });
 });

@@ -14,7 +14,7 @@ import {
   type SlotDef,
 } from "./program";
 import type { RuleSet } from "./rules";
-import { isRampIn, slotSets } from "./schedule";
+import { isRampIn, slotReps, slotSets } from "./schedule";
 
 export interface LoggedSet {
   id: string;
@@ -311,7 +311,7 @@ export function computeProgression(input: ProgressionInput): ProgressionResult {
     const slot = schemeForTrack(track);
     if (!st || !slot) return;
     const ex = exercise(st.exercise);
-    const [lo] = slot.reps;
+    const [lo] = slotReps(slot, date);
     let weight: number;
     const targetTotal = loadForReps(b.e1rm, lo, rirOf(slot));
     if (loadModeOf(ex) === "added") {
@@ -320,7 +320,7 @@ export function computeProgression(input: ProgressionInput): ProgressionResult {
       weight = toLoadable(ex, targetTotal, gym, "down");
     }
     const from = st.status === "active" ? { weight: st.weight, reps: st.repTargets } : null;
-    const n = slot.sets;
+    const n = slotSets(slot, date) ?? slot.sets;
     st.status = "active";
     st.weight = weight;
     st.repTargets = Array(n).fill(lo);
@@ -363,7 +363,7 @@ export function computeProgression(input: ProgressionInput): ProgressionResult {
       continue;
     }
 
-    const [lo, hi] = slot.reps;
+    const [lo, hi] = slotReps(slot, date);
     const n = slotSets(slot, date) ?? slot.sets;
     const mode_ = loadModeOf(ex);
     const cited = sets.map((s) => s.id);
@@ -546,7 +546,7 @@ export function computeProgression(input: ProgressionInput): ProgressionResult {
     const slot = schemeForTrack(track);
     if (!st || !slot) return;
     const ex = exercise(st.exercise);
-    const [lo, hi] = slot.reps;
+    const [lo, hi] = slotReps(slot, ov.date);
     const n = slotSets(slot, ov.date) ?? slot.sets;
     const before = st.status === "active" ? { weight: st.weight, reps: [...st.repTargets] } : null;
     if (ov.field === "weight") {

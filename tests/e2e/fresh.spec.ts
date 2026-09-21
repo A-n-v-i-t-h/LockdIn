@@ -85,7 +85,7 @@ test.describe("the real starting point", () => {
       const order = await page.locator("main > .stack").evaluateAll((els) => els.map((e) => e.textContent?.slice(0, 40) ?? ""));
       expect(order[0]).toContain("Station 04");
       expect(order.join(" ")).toContain("Tonight · Cronometer totals");
-      await expect(page.getByText("Tonight · ~70 min · optional")).toBeVisible();
+      await expect(page.getByText("Tonight · ~60 min · optional")).toBeVisible();
       await expect(page.locator(".st-banner")).toContainText("Ramp-in");
       await expect(page.getByRole("link", { name: "Log weigh-in" })).toBeVisible();
       expect(errors).toEqual([]);

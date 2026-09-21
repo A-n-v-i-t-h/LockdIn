@@ -426,6 +426,11 @@ export function WorkoutLogger(props: Props) {
                   {slot.rir !== "—" ? ` · RIR ${slot.rir}` : ""} · rest {slot.rest}
                   {slot.exercise.perSide ? " · each side" : ""}
                 </div>
+                {slot.warmups > 0 ? (
+                  <div className="sm t3">
+                    {slot.warmups === 1 ? "1 warm-up set first" : `${slot.warmups} warm-up sets first`} · not logged, work up to the weight
+                  </div>
+                ) : null}
               </div>
               {change && !isSub ? (
                 <span className={`chip ${change > 0 ? "up" : "down"}`}>
