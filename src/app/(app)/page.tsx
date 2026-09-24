@@ -21,10 +21,10 @@ const GREETING = { morning: "Morning", day: "Afternoon", evening: "Evening", nig
 
 export default async function Home() {
   const user = await requireUser();
-  const v = await homeView(user.id);
+  const [v, allTasks] = await Promise.all([homeView(user.id), getDb().then((db) => listTasks(db, user.id))]);
   const { out, run, part, today } = v;
   const card = out.card;
-  const tasks = (await listTasks(await getDb(), user.id)).filter((t) => bucketOf(t, today) === "today");
+  const tasks = allTasks.filter((t) => bucketOf(t, today) === "today");
   const firstName = user.displayName.split(" ")[0] || "there";
 
   const checkedIn = !!v.todayWeigh;

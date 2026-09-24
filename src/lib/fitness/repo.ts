@@ -151,14 +151,13 @@ export interface FitnessSettings {
 }
 
 export async function loadSettings(q: Queryable, userId: string, asOf = FAR_FUTURE): Promise<FitnessSettings> {
-  const rows = await q.query<{ key: string; value: unknown }>(
-    `select key, value from settings where user_id = $1 and ${asOfClause()}`,
-    [userId, asOf],
-  );
+  const [rows, changes] = await Promise.all([
+    q.query<{ key: string; value: unknown }>(`select key, value from settings where user_id = $1 and ${asOfClause()}`, [userId, asOf]),
+    loadDayChanges(q, userId, asOf),
+  ]);
   const map = new Map(rows.map((r) => [r.key, r.value]));
   const sched = map.get("schedule") as Partial<ScheduleSettings> | undefined;
   const restDay = Number(sched?.buildRestDay);
-  const changes = await loadDayChanges(q, userId, asOf);
   return {
     gym: map.has("gym") ? sanitiseGym(map.get("gym") as Partial<GymSettings>) : DEFAULT_GYM,
     schedule: {
@@ -579,12 +578,14 @@ export async function insertRun(
 
 export async function replaceLiftState(q: Queryable, userId: string, states: Record<string, TrackState>, runId: string, at: string): Promise<void> {
   await q.query("delete from lift_state where user_id = $1", [userId]);
-  for (const st of Object.values(states)) {
-    await q.query(
-      `insert into lift_state (user_id, track_key, state, run_id, updated_at) values ($1, $2, $3::jsonb, $4::uuid, $5::timestamptz)`,
-      [userId, st.track, JSON.stringify(st), runId, at],
-    );
-  }
+  const list = Object.values(states);
+  if (!list.length) return;
+  // One statement for every track: each insert is a round trip to the database.
+  await q.query(
+    `insert into lift_state (user_id, track_key, state, run_id, updated_at)
+     select $1::uuid, st->>'track', st, $3::uuid, $4::timestamptz from jsonb_array_elements($2::jsonb) as st`,
+    [userId, JSON.stringify(list), runId, at],
+  );
 }
 
 export async function loadLiftState(q: Queryable, userId: string): Promise<Record<string, TrackState>> {

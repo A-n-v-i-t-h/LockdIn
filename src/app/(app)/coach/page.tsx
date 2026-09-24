@@ -41,7 +41,7 @@ export default async function CoachPage({ searchParams }: { searchParams: Promis
   const at = now();
   const today = localDate(at);
   const run = await ensureTodayRun(db, user.id, at);
-  const [runs, overrides, targets, states, weeklies, monthlies, replays] = await Promise.all([
+  const [runs, overrides, targets, states, weeklies, monthlies, replays, aiNotes, proposals] = await Promise.all([
     listRuns(db, user.id, { limit: 120 }),
     loadOverrides(db, user.id),
     loadTargets(db, user.id),
@@ -49,8 +49,9 @@ export default async function CoachPage({ searchParams }: { searchParams: Promis
     listReviews<WeeklyReview>(db, user.id, "weekly", 8),
     listReviews<MonthlyAudit>(db, user.id, "monthly", 6),
     listReviews<ReplayResult>(db, user.id, "replay", 6),
+    listAiNotes(db, user.id, 10),
+    listProposals(db, user.id, { limit: 30 }),
   ]);
-  const [aiNotes, proposals] = await Promise.all([listAiNotes(db, user.id, 10), listProposals(db, user.id, { limit: 30 })]);
   const pending = proposals.filter((p) => p.status === "pending");
   const decided = proposals.filter((p) => p.status !== "pending").slice(0, 8);
 

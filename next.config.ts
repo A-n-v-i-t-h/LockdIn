@@ -10,6 +10,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // PGlite ships WebAssembly and data files; keep it out of the server bundle.
   serverExternalPackages: ["@electric-sql/pglite"],
+  // On Vercel getDb() only uses Postgres, so PGlite's 21 MB (and the link Turbopack
+  // makes to it) stays out of every function there: smaller functions start faster.
+  ...(process.env.VERCEL
+    ? { outputFileTracingExcludes: { "/*": ["node_modules/@electric-sql/pglite/**", ".next/node_modules/@electric-sql/pglite-*"] } }
+    : {}),
   poweredByHeader: false,
   experimental: {
     serverActions: {

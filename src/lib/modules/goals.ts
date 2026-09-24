@@ -72,16 +72,18 @@ interface Row {
 }
 
 export async function listGoals(q: Queryable, userId: string, includeArchived = false): Promise<Goal[]> {
-  const rows = await q.query<Row>(
-    `select id, title, category, target_date, kind, metric, start_value, target_value, notes, created_at, achieved_at, archived_at
-     from goals where user_id = $1 and ($2::boolean or archived_at is null)
-     order by archived_at nulls first, target_date nulls last, sort, created_at`,
-    [userId, includeArchived],
-  );
-  const ms = await q.query<{ id: string; goal_id: string; title: string; sort: number; done_at: string | null }>(
-    `select id, goal_id, title, sort, done_at from goal_milestones where user_id = $1 order by sort, created_at`,
-    [userId],
-  );
+  const [rows, ms] = await Promise.all([
+    q.query<Row>(
+      `select id, title, category, target_date, kind, metric, start_value, target_value, notes, created_at, achieved_at, archived_at
+       from goals where user_id = $1 and ($2::boolean or archived_at is null)
+       order by archived_at nulls first, target_date nulls last, sort, created_at`,
+      [userId, includeArchived],
+    ),
+    q.query<{ id: string; goal_id: string; title: string; sort: number; done_at: string | null }>(
+      `select id, goal_id, title, sort, done_at from goal_milestones where user_id = $1 order by sort, created_at`,
+      [userId],
+    ),
+  ]);
   return rows.map((r) => ({
     id: r.id,
     title: r.title,

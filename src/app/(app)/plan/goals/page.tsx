@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
+import { getDb } from "@/lib/db";
 import { fitnessBasics } from "@/lib/views/fitness";
 import { goalProgress, listGoals, nextMilestone } from "@/lib/modules/goals";
 import { sevenDayAverage } from "@/lib/fitness/nutrition";
@@ -15,10 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ archived?: string }> }) {
   const user = await requireUser();
-  const v = await fitnessBasics(user.id, now());
   const { archived } = await searchParams;
   const showArchived = archived === "1";
-  const goals = (await listGoals(v.db, user.id, showArchived)).filter((g) => (showArchived ? !!g.archivedAt : !g.archivedAt));
+  const [v, allGoals] = await Promise.all([fitnessBasics(user.id, now()), getDb().then((db) => listGoals(db, user.id, showArchived))]);
+  const goals = allGoals.filter((g) => (showArchived ? !!g.archivedAt : !g.archivedAt));
   const metrics = {
     benchE1rm: v.bests.bench?.best?.e1rm ?? null,
     bodyweightAvg: sevenDayAverage(v.weighIns, v.today).avg,

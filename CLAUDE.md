@@ -33,6 +33,13 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
   dates as `YYYY-MM-DD`, timestamps as ISO strings, numerics as numbers. Always cast
   parameters in SQL (`$1::date`). PGlite is one connection: inside `db.tx(q => …)` use `q`,
   never `db`, or it deadlocks.
+- **Speed is round trips to the database.** Functions run in `bom1` (Mumbai, `regions` in
+  `vercel.json`), beside the database in ap-south-1. Until 2026-09-24 they ran in `iad1`,
+  where every round trip cost ~200 ms and pages took 1–5 s. postgres.js with `prepare: false`
+  spends two round trips on every query with parameters (describe, then execute), and the pool
+  holds 3 connections. So send independent reads together (`Promise.all`), write many rows in
+  one statement (`replaceLiftState`), and never query in a loop. PGlite is left out of the
+  Vercel functions (`next.config.ts`) because they never load it.
 - **Schema** lives in `src/lib/db/migrations.ts` (append new versions; never edit an applied
   one once production exists). `LOCK_DOWN_SQL` runs after every migrate: RLS on every table,
   no policies, grants revoked from Supabase's `anon`/`authenticated`, so the public Data API

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
+import { getDb } from "@/lib/db";
 import { fitnessBasics } from "@/lib/views/fitness";
 import { EXERCISES, SESSION_BY_KEY, type SessionKey } from "@/lib/fitness/program";
 import { sleepMinutes } from "@/lib/fitness/readiness";
 import { isRampIn } from "@/lib/fitness/schedule";
 import { fmtKg } from "@/lib/fitness/equipment";
-import { addDays, fmtDuration, fmtShort, now } from "@/lib/time";
+import { addDays, fmtDuration, fmtShort, localDate, now } from "@/lib/time";
 import { fmtInt, plural } from "@/lib/format";
 import { Header } from "@/components/Header";
 import { ScrollX } from "@/components/ScrollX";
@@ -18,13 +19,16 @@ export const dynamic = "force-dynamic";
 
 export default async function HistoryPage() {
   const user = await requireUser();
-  const v = await fitnessBasics(user.id, now());
-  const since = addDays(v.today, -60);
-  const sessions = await v.db.query<{ id: string; date: string; session_key: string; finished_at: string | null }>(
-    `select id, date, session_key, finished_at from sessions
-     where user_id = $1 and deleted_at is null and date >= $2::date order by date desc`,
-    [user.id, since],
-  );
+  const at = now();
+  const db = await getDb();
+  const [v, sessions] = await Promise.all([
+    fitnessBasics(user.id, at),
+    db.query<{ id: string; date: string; session_key: string; finished_at: string | null }>(
+      `select id, date, session_key, finished_at from sessions
+       where user_id = $1 and deleted_at is null and date >= $2::date order by date desc`,
+      [user.id, addDays(localDate(at), -60)],
+    ),
+  ]);
   const setsByDate = new Map<string, typeof v.sets>();
   for (const s of v.sets) setsByDate.set(s.date, [...(setsByDate.get(s.date) ?? []), s]);
 

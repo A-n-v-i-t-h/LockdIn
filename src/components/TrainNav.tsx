@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkPending } from "./LinkPending";
 
 const LINKS = [
   { href: "/train", label: "Today" },
@@ -15,6 +16,7 @@ export function TrainNav({ current }: { current: string }) {
       {LINKS.map((l) => (
         <Link key={l.href} href={l.href} className={`chip${l.href === current ? " up" : ""}`} aria-current={l.href === current ? "page" : undefined}>
           {l.label}
+          <LinkPending />
         </Link>
       ))}
     </nav>

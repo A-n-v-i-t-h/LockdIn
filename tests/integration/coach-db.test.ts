@@ -222,6 +222,9 @@ describe("coach runs", () => {
     expect((await getCurrentRun(db, user.id, "2026-09-22"))?.id).toBe(second.run.id);
     const states = await loadLiftState(db, user.id);
     expect(states.bench_heavy).toMatchObject({ weight: 47.5, seed: "baseline" });
+    // The cache holds exactly the run's states, one row per track (written in one statement).
+    expect(Object.keys(states).length).toBeGreaterThan(1);
+    expect(states).toEqual(second.run.output.states);
   });
 
   it("writes the calorie change of a Monday review once, whatever the revision", async () => {

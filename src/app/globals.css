@@ -657,6 +657,24 @@ table.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabula
 .pill-nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .pill-nav::-webkit-scrollbar { display: none; }
 
+/* A tapped nav link shows a red line while its page loads (LinkPending). It waits
+   100 ms, so a fast navigation doesn't flash. */
+.tb a, .pill-nav .chip { position: relative; }
+.link-pending { position: absolute; left: 0; right: 0; height: 3px; background: var(--accent); opacity: 0; pointer-events: none; }
+.tb .link-pending { top: 0; }
+.pill-nav .link-pending { bottom: 0; height: 2px; }
+.link-pending.on { animation: pending-in 0.15s ease-out 0.1s forwards; }
+@keyframes pending-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .link-pending.on { animation: pending-in 0.15s ease-out 0.1s forwards, pending-sweep 1s ease-in-out 0.1s infinite; }
+  @keyframes pending-sweep {
+    0% { transform: scaleX(0); transform-origin: left; }
+    50% { transform: scaleX(1); transform-origin: left; }
+    50.01% { transform-origin: right; }
+    100% { transform: scaleX(0); transform-origin: right; }
+  }
+}
+
 @media (min-width: 560px) {
   body { background: #070707; }
   .app { box-shadow: 0 0 0 1px #1c1c1c, 0 30px 80px rgba(0, 0, 0, 0.6); }

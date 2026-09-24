@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./Icon";
+import { LinkPending } from "./LinkPending";
 
 const TABS: { href: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
   { href: "/", label: "Home", icon: "home", match: (p) => p === "/" || p.startsWith("/checkin") || p.startsWith("/tonight") },
@@ -22,6 +23,7 @@ export function TabBar() {
           <Link key={t.href} href={t.href} aria-current={on ? "page" : undefined}>
             <Icon name={t.icon} size={22} />
             {t.label}
+            <LinkPending />
           </Link>
         );
       })}

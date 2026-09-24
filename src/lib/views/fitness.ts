@@ -1,5 +1,5 @@
 import "server-only";
-import { getDb } from "@/lib/db";
+import { getDb, type Db } from "@/lib/db";
 import { ensureTodayRun } from "@/lib/fitness/agent";
 import { computeBests } from "@/lib/fitness/bests";
 import { computeMorning, type MorningOutput } from "@/lib/fitness/engine";
@@ -43,14 +43,24 @@ export async function fitnessBasics(userId: string, at: Date = now()) {
   return { db, today, weighIns, nutrition, sets, measurements, targets, settings, bodyweight, bests, streak };
 }
 
+/** Today's session and its logged sets. */
+async function todaySession(db: Db, userId: string, today: string) {
+  const session = await getSession(db, userId, today);
+  return { session, logged: session ? await sessionSets(db, userId, session.id) : [] };
+}
+
 export async function homeView(userId: string) {
   const at = now();
-  const base = await fitnessBasics(userId, at);
-  const run: CoachRun = await ensureTodayRun(base.db, userId, at);
+  const db = await getDb();
+  // The run first: on a day without one it is created here, with that day's calorie target.
+  const run: CoachRun = await ensureTodayRun(db, userId, at);
+  const [base, { session, logged }, notes, pending] = await Promise.all([
+    fitnessBasics(userId, at),
+    todaySession(db, userId, localDate(at)),
+    listAiNotes(db, userId, 1),
+    listProposals(db, userId, { pending: true }),
+  ]);
   const nightDate = logicalDate(at);
-  const session = await getSession(base.db, userId, base.today);
-  const logged = session ? await sessionSets(base.db, userId, session.id) : [];
-  const [notes, pending] = await Promise.all([listAiNotes(base.db, userId, 1), listProposals(base.db, userId, { pending: true })]);
   return {
     ...base,
     aiNote: notes[0]?.date === base.today ? notes[0] : null,
@@ -97,9 +107,10 @@ export async function trainView(userId: string) {
   const at = now();
   const db = await getDb();
   const today = localDate(at);
-  const run = await ensureTodayRun(db, userId, at);
-  const session = await getSession(db, userId, today);
-  const logged = session ? await sessionSets(db, userId, session.id) : [];
-  const settings = await loadSettings(db, userId);
+  const [run, { session, logged }, settings] = await Promise.all([
+    ensureTodayRun(db, userId, at),
+    todaySession(db, userId, today),
+    loadSettings(db, userId),
+  ]);
   return { today, run, out: run.output, session, logged, settings };
 }
