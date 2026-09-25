@@ -104,7 +104,8 @@ Next.js 16: read `node_modules/next/dist/docs/` before framework work (async req
 
 ## UI
 
-Stencil (`docs/design/stencil-reference.html`): #131313 base, square corners, 2px borders,
+Stencil (`docs/design/stencil-reference.html`; the written spec and the Iron backup are in
+`docs/design/README.md`): #131313 base, square corners, 2px borders,
 plate red #E2463F for marks and lines, **#C63D36 for fills under white text** (contrast),
 hazard yellow #E8B923, work-order paper #E7E3D8, fonts Saira Stencil / Saira Condensed /
 Saira. Tokens and component classes are in `src/app/globals.css`. Home order changes with

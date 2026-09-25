@@ -77,5 +77,5 @@ src/lib/demo/       season simulator and sample content (tests and demo only)
 rules/RULES.md      the coach's rules, v1
 scripts/            migrate, create-user, run-agent, e2e/demo server, icons, screenshots
 tests/              unit, integration (database), e2e (browser)
-docs/design/        the chosen Stencil reference page
+docs/design/        the Stencil spec and its reference page
 ```
