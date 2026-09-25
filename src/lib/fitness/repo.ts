@@ -521,15 +521,6 @@ export async function getCurrentRun(q: Queryable, userId: string, date: string):
   return rows[0] ? toRun(rows[0]) : null;
 }
 
-export async function getLatestRun(q: Queryable, userId: string, onOrBefore: string): Promise<CoachRun | null> {
-  const rows = await q.query<RunRow>(
-    `select ${RUN_COLS} from coach_runs where user_id = $1 and run_date <= $2::date and superseded_at is null
-     order by run_date desc limit 1`,
-    [userId, onOrBefore],
-  );
-  return rows[0] ? toRun(rows[0]) : null;
-}
-
 /** The as-of of the latest run on an earlier day: the cutoff for "new since last time". */
 export async function previousRunAsOf(q: Queryable, userId: string, date: string): Promise<string | null> {
   const rows = await q.query<{ as_of: string }>(

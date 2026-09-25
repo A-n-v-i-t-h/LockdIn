@@ -123,12 +123,3 @@ export async function updateCommitment(q: Queryable, userId: string, id: string,
 export async function deleteCommitment(q: Queryable, userId: string, id: string, at: string): Promise<void> {
   await q.query(`update commitments set deleted_at = $3::timestamptz where user_id = $1 and id = $2::uuid`, [userId, id, at]);
 }
-
-export async function getCommitment(q: Queryable, userId: string, id: string): Promise<Commitment | null> {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const rows = await q.query<Row>(
-    `select id, title, date, start_time, end_time, location, notes from commitments where user_id = $1 and id = $2 and deleted_at is null`,
-    [userId, id],
-  );
-  return rows[0] ? toCommitment(rows[0]) : null;
-}

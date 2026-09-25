@@ -1,7 +1,6 @@
 import { addDays, diffDays, weekday } from "@/lib/time";
 import {
   BASELINE_WEEK_START,
-  FULL_PROGRAM_START,
   PROGRAM_START,
   SESSIONS,
   type SessionDef,
@@ -28,10 +27,6 @@ export function phaseOf(date: string): Phase {
 /** Entries before the week-3 baselines are ramp-in: kept in history, ignored by progression. */
 export function isRampIn(date: string): boolean {
   return date < BASELINE_WEEK_START;
-}
-
-export function isBaselineWeek(date: string): boolean {
-  return phaseOf(date) === "baseline";
 }
 
 export const PHASE_LABEL: Record<Phase, string> = {
@@ -165,9 +160,3 @@ export function nextDateForTrack(
   }
   return null;
 }
-
-export const SCHEDULE_FACTS = {
-  programStart: PROGRAM_START,
-  baselineWeekStart: BASELINE_WEEK_START,
-  fullProgramStart: FULL_PROGRAM_START,
-};

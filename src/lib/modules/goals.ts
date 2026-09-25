@@ -27,8 +27,6 @@ export interface Goal {
   milestones: Milestone[];
 }
 
-export const CATEGORIES = ["Strength", "Body", "Build", "Mind", "Money", "General"];
-
 export interface GoalMetrics {
   benchE1rm: number | null;
   bodyweightAvg: number | null;

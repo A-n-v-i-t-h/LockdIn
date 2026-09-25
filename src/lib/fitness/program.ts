@@ -669,11 +669,6 @@ export const SESSION_BY_KEY: Record<SessionKey, SessionDef> = Object.fromEntries
   SESSIONS.map((s) => [s.key, s]),
 ) as Record<SessionKey, SessionDef>;
 
-export const REST_DAY = {
-  name: "Rest",
-  focus: "30–40 min walk outside",
-};
-
 /** Dec 2025 peaks, estimated maxes (Epley). Bests below these are regain, not PRs. */
 export const PEAKS: Record<string, { e1rm: number; label: string }> = {
   bench: { e1rm: 73, label: "60 kg × 6–7 in Dec 2025" },

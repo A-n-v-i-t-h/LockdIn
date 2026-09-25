@@ -2,7 +2,6 @@
 // so a fixed +05:30 offset converts local wall time to instants exactly.
 // Dates are ISO strings ("2026-09-21"); instants are Date objects or ISO strings.
 
-export const TIME_ZONE = "Asia/Kolkata";
 export const TZ_OFFSET = "+05:30";
 const OFFSET_MINUTES = 330;
 
@@ -134,12 +133,6 @@ export function isFirstMondayOfMonth(date: string): boolean {
 export function fmtShort(date: string): string {
   assertDate(date);
   return `${DOW[weekday(date) - 1]} ${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1]}`;
-}
-
-/** "29 Oct" */
-export function fmtDayMonth(date: string): string {
-  assertDate(date);
-  return `${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1]}`;
 }
 
 /** "Thursday 29 October 2026" */

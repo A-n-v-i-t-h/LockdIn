@@ -77,7 +77,6 @@ img, svg { display: block; }
   min-width: 0;
 }
 .scr > * { min-width: 0; }
-.scr.bare { padding-bottom: 28px; }
 
 .st-head {
   margin: 0 -16px;
@@ -179,7 +178,7 @@ img, svg { display: block; }
 .sub { color: var(--ink2); font-size: 14px; }
 .sm { font-size: 12.5px; }
 .t2 { color: var(--ink2); }
-.t3, .muted { color: var(--ink3); }
+.t3 { color: var(--ink3); }
 .num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
 .big { font-family: var(--f-num); font-weight: 800; font-size: 46px; line-height: 0.9; }
 .big.xl { font-size: 96px; letter-spacing: -0.01em; }
@@ -211,7 +210,6 @@ img, svg { display: block; }
 .card.flush { gap: 0; padding-block: 4px; }
 .card.warn-edge { border-color: var(--warn); }
 .card.accent-edge { border-color: var(--accent); }
-.card.sunk { background: var(--sunken); }
 
 .st-tag {
   display: inline-flex;
@@ -548,8 +546,6 @@ table.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabula
 .stepper input { text-align: center; border-inline: 0; }
 .rest { display: flex; align-items: center; gap: 10px; font: 600 14px/1 var(--f-num); color: var(--ink2); }
 .rest .meter { flex: 1; }
-.exrow { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.exrow:last-child { border-bottom: 0; }
 .swap { display: inline-flex; align-items: center; gap: 5px; font: 700 12.5px/1.2 var(--f-num); letter-spacing: 0.04em; color: var(--ink2); background: transparent; border: 0; padding: 4px 0; text-align: left; }
 .swap[aria-pressed="true"] { color: var(--warn); }
 .plates svg { width: 100%; height: auto; }
@@ -678,10 +674,6 @@ table.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabula
 @media (min-width: 560px) {
   body { background: #070707; }
   .app { box-shadow: 0 0 0 1px #1c1c1c, 0 30px 80px rgba(0, 0, 0, 0.6); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .fade { animation: fade 0.25s ease-out; }
-  @keyframes fade { from { opacity: 0.4; } to { opacity: 1; } }
 }
 @media (max-width: 360px) {
   .big.xl { font-size: 80px; }
